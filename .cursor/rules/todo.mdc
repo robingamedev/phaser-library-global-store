@@ -55,10 +55,12 @@ status: active
   - [ ] Mention `strictMode` and key structure
   - [ ] Add FAQ: “Why not use Phaser Registry or Redux?”
   - [ ] Add example of using `globalStore.dump()` + `reset()` with save-kit
+  - [ ] Add "Why not use X?" comparison table
 
 - [ ] Add “Quick Start” section to `README.md`
   - [ ] 10-line usable example with `set`, `get`, `onChange`
   - [ ] Should be visible early in the README
+
 
 - [ ] `usage.mdc`: Document public API + strict mode behavior
   - [ ] Full method signatures
@@ -127,6 +129,6 @@ status: active
 - [ ] Optional Phaser Scene mixin for auto cleanup of listeners
 
 ### Documentation
-- [ ] Performance benchmarks with 100, 1K, and 10K keys
+- [ ] Create Performance benchmarks with 100, 1K, and 10K keys
 
 
