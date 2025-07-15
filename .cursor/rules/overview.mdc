@@ -1,0 +1,88 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+id: global-store-overview
+title: Global Store – Overview
+version: 0.2.2
+category: phaser-plugin
+status: active
+---
+
+## 🔐 What It Does
+
+This plugin uses a **module-level singleton** — simply import and use. No need to instantiate a class.
+
+```ts
+import globalStore from '@robingamedev/global-store';
+```
+
+The `global-store` plugin provides a **singleton, in-memory key-value store** for Phaser games. It allows developers to share, read, and write arbitrary data across scenes without relying on the Phaser Registry or custom globals.
+
+It’s intentionally simple, but flexible enough to:
+
+- Group keys by namespaces (e.g., `player.hp`, `scene.title.fadeOut`)
+- Export/import state manually
+- Hook into data changes via `onChange()` observers (see `usage.mdc`)
+
+This plugin **does not persist data** on its own — but it’s fully compatible with save systems, like `save-kit`.
+
+> ⚠️ This plugin is not a wrapper around Phaser’s built-in Registry.  
+> It offers a more modular, namespaced, and testable alternative — designed for clean cross-scene data management.
+
+> 🎯 Unlike Redux, this plugin does not require reducers, actions, or immutable state.  
+> It favors simplicity, dot-path access, and Phaser-style flexibility.
+
+> 📘 See `usage.mdc` for a full method reference and `set/get/onChange` examples.
+
+---
+
+## 🧱 Use Cases
+
+- Store player status (`player.hp`, `inventory.coins`)
+- Track scene progression (`scene.intro.shown`)
+- Bridge data between scenes (`battle.options.escapeAllowed`)
+- Use alongside other plugins without global coupling
+
+---
+
+## 🌐 Compatibility
+
+This plugin targets modern ESM-based browsers. It works in:
+
+- ✅ Chromium-based browsers (Chrome, Edge)
+- ✅ Firefox
+- ✅ Safari
+- ✅ Any ESM-compatible game build (Webpack, Vite, etc.)
+
+It does not include legacy UMD builds or support for Internet Explorer.
+
+> ⚠️ **Performance Note:** The store handles thousands of keys just fine, but you should avoid dumping giant level blueprints, full animation trees, or scene-local objects into it.
+
+---
+
+## 🎯 Design Goals
+
+- 🧠 **Simple**: One import, one singleton, one pattern
+- 🧱 **No Phaser dependency**: Can be used in other JS/TS contexts
+- 🛠 **Developer-owned structure**: You decide how to organize your keys
+- 🔄 **Optional reactivity**: Use `onChange()` if needed
+- 🧩 **TypeScript-native**: All public methods and `onChange()` signatures are typed. Works in both TS and JS.
+- ⚠️ **Configurable strictness**: Developers can enable `strictMode` to throw on invalid keys or allow silent fails for production safety.
+
+---
+
+## 🚫 Advanced Suggestions (Rejected for MVP)
+
+| Suggestion | Verdict |
+|-----------|---------|
+| ✅ **Custom Key Validators** | Worth considering in `configure()` for v1.1+ |
+| ❌ **Optional Deep Equality** | Too complex / slow — don’t add it |
+| ✅ **Scene Helper for Listener Cleanup** | Already planned — Phase 3 utility |
+| ✅ **TS Usage Example** | Scheduled in Phase 3 |
+| ❌ **Migration Guide (Redux/Registry)** | Not worth building |
+| ✅ **Performance Note** | Included above and in `usage.mdc`
+```
+

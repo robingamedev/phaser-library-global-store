@@ -1,0 +1,81 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+id: global-store-demo
+title: Global Store – Demo Plan
+version: 0.2.1
+category: phaser-plugin
+status: active
+---
+
+## 🧪 Demo Title: “The Camp and the Shrine”
+
+A minimal RPG shell that simulates a persistent player + world state using `global-store`.
+
+---
+
+## 🎮 Scenes
+
+### 🔥 Campfire
+
+- Shows current:
+  - `player.name`
+  - `player.hp`
+  - `player.inventory`
+  - `settings.audio.muted`
+- Buttons:
+  - “Change Name” → Prompts and stores to `player.name`
+  - “Sleep to Restore HP” → Sets `player.hp = 100`
+  - “Toggle Audio” → Sets `settings.audio.muted`
+  - “Enter Shrine” → Starts next scene
+
+---
+
+### 🏛 Shrine Interior
+
+- Simulates:
+  - Combat (enemy attacks reduce `player.hp` every 2s)
+  - UI reacts via `onChange('player.hp')`
+- Shows:
+  - If player has `old_key`, they can unlock door
+  - Sets `world.shrine.secretRoomUnlocked = true`
+- Button:
+  - “Return to Camp” → Loads Campfire scene
+
+---
+
+### 🌌 Shrine Secret Room
+
+- Entry only allowed if `world.shrine.secretRoomUnlocked === true`
+- Shows:
+  - Final `globalStore.dump()` (live or snapshot)
+- Reward:
+  - Adds `"amulet"` to `player.inventory`
+
+---
+
+## 🧰 Debug Overlay (Optional, Toggleable)
+
+- Shows:
+  - Live store dump
+  - Visual console log of triggered `onChange()` events
+    - Example: `[onChange] player.hp = 90 → 85`
+
+Note: The debug overlay is only included in the demo project.
+It is not bundled into the global-store plugin, and will not be included in production builds.
+
+---
+
+## 🎯 Edge Cases Covered
+
+- Nested keys: `player.stats.hp`, `world.shrine.secretRoomUnlocked`
+- Arrays and deep objects: `player.inventory`
+- Boolean toggles: `settings.audio.muted`
+- Listener lifecycle: `onChange()` in `create()`, `offChange()` in `shutdown()`
+- Simulated save/load: `globalStore.reset(...)` used for “New Game” or test
+
+---
+

@@ -1,0 +1,132 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+id: global-store-anti-patterns
+title: Global Store – Anti-Patterns & Misuses
+version: 0.1.0
+category: phaser-plugin
+status: active
+---
+
+## 🚫 Global Store Anti-Patterns
+
+This plugin is flexible — but misuse can create long-term problems.
+
+Use this guide to avoid common traps when using `global-store` in your Phaser game.
+
+---
+
+### ❌ 1. Storing Scene-Local State
+
+```ts
+globalStore.set('camera.shakeX', 0.4);
+```
+
+**Why it's bad:**
+- This value is only needed during one scene.
+- It pollutes global state with temporary data.
+- Leads to confusion when scenes re-read it out of context.
+
+**Use Instead:**
+```ts
+this.cameras.main.shake(...) // Keep state in-scene
+```
+
+---
+
+### ❌ 2. Flat Key Explosion
+
+```ts
+globalStore.set('playerHp', 100);
+globalStore.set('playerXp', 1200);
+globalStore.set('playerCoins', 300);
+```
+
+**Why it's bad:**
+- No structure. Becomes unmaintainable at scale.
+- Hard to debug, hard to serialize.
+
+**Use Instead:**
+```ts
+globalStore.set('player.hp', 100);
+globalStore.set('player.xp', 1200);
+globalStore.set('player.coins', 300);
+```
+
+---
+
+### ❌ 3. Never Cleaning Up `onChange()` Listeners
+
+```ts
+// In SceneA
+globalStore.onChange('player.hp', this.updateUI);
+```
+
+**Why it's bad:**
+- If you don’t call `offChange()`, this listener stays alive forever.
+- Re-entering SceneA? Now the callback fires twice.
+- Memory leaks and ghost behaviors.
+
+**Use Instead:**
+```ts
+this.hpListener = (val) => this.updateUI(val);
+globalStore.onChange('player.hp', this.hpListener);
+
+this.events.once('shutdown', () => {
+  globalStore.offChange('player.hp', this.hpListener);
+});
+```
+
+---
+
+### ❌ 4. Using globalStore as a dumping ground
+
+```ts
+globalStore.set('tempName', userInput);
+globalStore.set('scoreBuffer', []);
+globalStore.set('debugFPS', true);
+```
+
+**Why it's bad:**
+- You’re using it for *everything*, not just shared game state.
+- Becomes a junk drawer that’s hard to clean.
+
+**Use Instead:**
+- Store persistent, cross-scene state only
+- Keep debug and short-term variables elsewhere
+
+---
+
+### ❌ 5. Storing Non-Serializable Data
+
+```ts
+globalStore.set('player.attackFn', () => { ... });
+```
+
+**Why it's bad:**
+- Breaks serialization (`dump()` won’t work)
+- Can’t save or transfer between sessions
+- Causes weird behavior on reload or `reset()`
+
+**Use Instead:**
+- Store only **primitives, arrays, and plain objects**
+- Use string keys for skills/abilities, not actual logic
+
+```ts
+globalStore.set('player.skills', ['attack', 'block']);
+```
+
+---
+
+## ✅ Final Advice
+
+- Keep it **structured** and **predictable**
+- Use the store for **game state**, not everything else
+- Avoid ghost listeners by always calling `offChange()`
+- Think: “Would I need this value across scenes, or after a save/load?”
+
+---
+

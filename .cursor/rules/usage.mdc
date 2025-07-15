@@ -1,0 +1,198 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+id: global-store-usage
+title: Global Store – Usage & API
+version: 0.2.2
+category: phaser-plugin
+status: active
+---
+
+## 🚀 Getting Started
+
+```bash
+npm install @robingamedev/global-store
+```
+
+```ts
+// Import the singleton store (no setup required)
+import globalStore from '@robingamedev/global-store';
+```
+
+## 🛠 Basic API
+
+```ts
+// Set a value
+globalStore.set('player.hp', 10);
+
+// Get a value
+const hp = globalStore.get('player.hp');
+
+// Check if a key exists
+if (globalStore.has('player.hp')) { ... }
+
+// Delete a key
+globalStore.delete('player.hp');
+
+// Reset entire store (e.g., from a save file)
+globalStore.reset({
+  player: { hp: 5 },
+  inventory: { coins: 20 }
+});
+
+// Export full store as plain object
+const snapshot = globalStore.dump();
+```
+
+## 🧠 Namespace Helpers (Optional Pattern)
+
+You can build your own namespaced helpers:
+
+```ts
+function ns(prefix: string) {
+  return {
+    set: (key: string, value: any) => globalStore.set(`${prefix}.${key}`, value),
+    get: (key: string) => globalStore.get(`${prefix}.${key}`)
+  };
+}
+
+const playerStore = ns('player');
+playerStore.set('hp', 9);
+```
+
+## 🔁 Listen to Changes 
+
+```ts
+function onGoldChange(newVal, oldVal) {
+  console.log(`Gold changed from ${oldVal} → ${newVal}`);
+}
+
+
+// TypeScript example
+globalStore.onChange<number>('player.hp', (newHp, oldHp) => {
+  console.log(`HP changed from ${oldHp} to ${newHp}`);
+});
+
+
+globalStore.onChange('inventory.gold', onGoldChange);
+
+// Later (optional):
+globalStore.offChange('inventory.gold', onGoldChange);
+```
+
+⚠️ You are responsible for removing listeners when switching or destroying scenes.
+For example, call offChange() in your scene’s shutdown() or destroy() method to avoid duplicate triggers or memory leaks.
+
+### How Change Detection Works
+
+`onChange()` fires **only if the new value is not the same as the old value (using `!==`)`.
+
+This means:
+
+- ✅ `store.set('x', 5)` → fires if it was not 5 before
+- ✅ `store.set('obj', { hp: 10 })` → fires if the object is a new reference
+- ❌ Mutating the same object (`store.get('obj').hp = 5`) → will NOT fire
+
+Note: `onChange()` only triggers if a new reference is set.
+
+```ts
+const obj = globalStore.get('player.stats');
+obj.hp = 90;
+globalStore.set('player.stats', obj); // ✅ Triggers
+
+// ❌ This won't trigger by itself:
+globalStore.get('player.stats').hp = 90;
+```
+
+We recommend always treating object/array updates as replacements.
+
+
+
+You can also call `globalStore.clearAllListeners()` to remove every active listener — useful when switching scenes or resetting global state manually.
+
+
+
+### Listener Cleanup Pattern
+
+When registering multiple listeners in a Phaser scene, we recommend tracking them in an array and removing them during `shutdown`.
+
+```ts
+this._listeners = [
+  ['player.hp', (val) => this.updateHp(val)],
+  ['inventory.gold', (val) => this.updateGold(val)],
+];
+
+this._listeners.forEach(([key, fn]) => {
+  globalStore.onChange(key, fn);
+});
+
+this.events.once('shutdown', () => {
+  this._listeners.forEach(([key, fn]) => {
+    globalStore.offChange(key, fn);
+  });
+});
+
+
+
+## ⚠️ Error Handling & Strict Mode
+
+By default, the plugin is **safe in production** — it logs bad key usage but won’t crash your game.
+
+Developers can optionally enable `strictMode` for error-throwing behavior:
+
+```ts
+globalStore.configure({ strictMode: true });
+
+
+| Case                      | strictMode = `true`       | strictMode = `false` |
+| ------------------------- | ------------------------- | -------------------- |
+| `set('', value)`          | Throws `InvalidKeyError`  | Logs warning, no-op  |
+| `set('__proto__', value)` | Throws or blocks silently | Blocks silently      |
+| `undefined` as value      | Allowed                   | Allowed              |
+```
+
+### Valid Keys
+
+Global store keys follow a dot-path structure (e.g., `player.hp`, `settings.audio.volume`).
+
+By default, the plugin accepts most keys. In `strictMode`, the following rules apply:
+
+- ❌ Empty string keys are disallowed
+- ❌ Leading/trailing/consecutive dots (`..`) are disallowed
+- ✅ Dots, underscores, and dashes are allowed in path segments
+- 😐 Spaces or emoji are allowed, but will log warnings
+- ⚠️ Deeply nested paths (>10 levels) log a warning
+### Reserved Keys
+
+In `strictMode`, the following keys are blocked or warned:
+
+- `__proto__`
+- `constructor`
+- `prototype`
+
+These can cause prototype pollution or security issues and should never be used as root-level keys.
+
+
+
+### Save/Load Integration
+
+The global store is designed to work well with custom save systems like `@robingamedev/phaser-library-save-kit`.
+
+Example:
+
+```ts
+// Saving
+const state = globalStore.dump();
+saveKit.saveToLocalStorage('slot1', state);
+
+// Loading
+const saved = saveKit.loadFromLocalStorage('slot1');
+globalStore.reset(saved);
+
+```
+
+> State integration is left to the developer for flexibility.
+
