@@ -1,0 +1,154 @@
+---
+
+id: global-store-example-farming-sim
+title: Global Store – Example: Farming Sim
+version: 0.2.2
+category: phaser-plugin
+status: active
+--------------
+
+## 🌾 Farming Sim – Example Usage
+
+This example demonstrates how to organize a persistent global state for a life sim or farming game, inspired by Stardew Valley, Animal Crossing, and My Time at Sandrock.
+
+It includes crop fields, NPC relationships, crafting systems, daily resets, animals, and home upgrades.
+
+---
+
+### 🧠 Recommended Key Structure
+
+```ts
+// 🗓 Calendar & Seasons
+calendar.day = 15;
+calendar.season = 'summer';
+calendar.year = 2;
+
+// 🌱 Field (tile-based, object array)
+fields = [
+  { x: 1, y: 2, crop: 'wheat', stage: 2, watered: true },
+  { x: 2, y: 3, crop: 'carrot', stage: 1, watered: false }
+];
+
+// 🌦️ Weather (stored, not generated here)
+world.weather = 'rainy';
+
+// 🧑 Player State
+player.stamina = 92;
+player.appearance = { hair: 'braids', clothes: 'overalls' };
+player.checkpoint = 'farm';
+
+// 🏠 House
+home.level = 2;
+home.furniture = [
+  { id: 'bed', x: 2, y: 4 },
+  { id: 'dresser', x: 1, y: 3 }
+];
+
+// 🧰 Inventory
+inventory.wood = 35;
+inventory.stone = 20;
+inventory.seeds = { carrot: 3, wheat: 5 };
+
+// 🔨 Crafting Queues
+crafting.workbench1 = { item: 'scarecrow', remainingTime: 45 };
+crafting.kitchen = null;
+
+// 🐄 Animals
+animals = [
+  { id: 'cow01', name: 'Bessie', fed: true, happy: true },
+  { id: 'chicken01', name: 'Peep', fed: false, happy: false }
+];
+
+// 🤝 Relationships
+npcs.alex = {
+  hearts: 4,
+  giftedToday: true,
+  married: false
+};
+npcs.mayor = {
+  hearts: 2,
+  giftedToday: false
+};
+
+// 🎁 Festival Flags
+flags.event.springFestival = true;
+flags.event.eggHunt = false;
+
+// ✉️ Mail
+inbox = [
+  { id: 'letter1', read: true },
+  { id: 'letter2', read: false }
+];
+```
+
+---
+
+### 🛠 Code Examples
+
+#### ✅ Watering a Crop (Atomic replacement)
+
+```ts
+const updated = fields.map(tile =>
+  tile.x === 2 && tile.y === 3 ? { ...tile, watered: true } : tile
+);
+globalStore.set('fields', updated);
+```
+
+#### 🧡 Increasing Affection
+
+```ts
+const npc = globalStore.get('npcs.alex');
+globalStore.set('npcs.alex', {
+  ...npc,
+  hearts: npc.hearts + 1,
+  giftedToday: true
+});
+```
+
+#### 🐄 Feeding Animals
+
+```ts
+const animals = globalStore.get('animals');
+const fed = animals.map(a => ({ ...a, fed: true }));
+globalStore.set('animals', fed);
+```
+
+#### 🔁 Daily Reset Pattern
+
+```ts
+// Reset daily flags (giftedToday, watered, etc.)
+const npcs = globalStore.get('npcs');
+for (const name in npcs) {
+  npcs[name].giftedToday = false;
+}
+globalStore.set('npcs', npcs);
+```
+
+---
+
+### 💡 Design Tips
+
+* Avoid deeply nested per-tile trees — use arrays of objects for crops, animals, and furniture.
+* Use `onChange()` for things like crafting completion, festival triggers, or relationship changes.
+* Daily reset logic is a great candidate for scene boot hooks or day-end transitions.
+* Keep weather/event logic external, but store results globally.
+
+---
+
+### ✅ Plugin Alignment Table
+
+| Rule                        | Coverage                                                      |
+| --------------------------- | ------------------------------------------------------------- |
+| **Namespaced Keys**         | ✅ `player`, `fields`, `crafting`, `npcs`                      |
+| **Object Arrays**           | ✅ `fields[]`, `animals[]`, `furniture[]`                      |
+| **Booleans, timers, flags** | ✅ `giftedToday`, `fed`, `weather`, `remainingTime`            |
+| **Atomic update examples**  | ✅ Required to trigger `onChange()`                            |
+| **Realistic usage**         | ✅ Pulls from actual patterns seen in Stardew, Animal Crossing |
+
+---
+
+### 🔗 See Also
+
+* `usage.mdc` for API details
+* `anti-patterns.mdc` for common misuse cases
+* `todo.mdc` to track future documentation like fishing, journal, or multiplayer state

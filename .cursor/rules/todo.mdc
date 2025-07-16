@@ -91,7 +91,11 @@ status: active
   - [ ] Optional: Create one Phaser scene per genre pattern in `examples.mdc`
   - [ ] Helps serve as live docs
 
-
+- [ ] Add “Design Considerations” section
+  - [ ] Explain why the store uses reference equality (`!==`) for `onChange()`
+  - [ ] Clarify tradeoffs: no deep observation, no Proxies
+  - [ ] Reinforce: plugin favors simplicity, performance, and control over magic
+  - [ ] Optional: include historical context from Redux, Zustand, MobX, Vue
 
 ---
 

@@ -1,0 +1,124 @@
+---
+
+id: global-store-example-roguelite
+title: Global Store – Example: Rogue-lite
+version: 0.2.2
+category: phaser-plugin
+status: active
+--------------
+
+## ⚔️ Rogue-lite – Example Usage
+
+This example demonstrates how to structure data in a game with repeatable runs, meta-progression, and unlockable systems. Inspired by games like *Vampire Survivors*, *Dead Cells*, and *Slay the Spire*.
+
+It includes temporary run-state, permanent unlocks, achievement tracking, and lifecycle resets.
+
+---
+
+### 🧠 Recommended Key Structure
+
+```ts
+// 🔁 Run-specific State (wiped at game over)
+run.character = 'rogue';
+run.hp = 42;
+run.gold = 83;
+run.floor = 3;
+run.mods = ['doubleDamage', 'regen'];
+run.status = 'alive';
+run.seed = 'a3f92k';
+
+// 🧠 Meta Progression (persists between runs)
+meta.unlocked.characters = ['rogue', 'mage'];
+meta.unlocked.mods = ['doubleDamage', 'regen', 'glassCannon'];
+meta.essence = 520;
+
+// 🪓 Weapon/Enemy Stats
+stats.kills = {
+  slime: 48,
+  bat: 19
+};
+stats.deaths = 7;
+
+// 🏆 Achievements
+flags.achievement.slayer = stats.kills.slime >= 50;
+flags.achievement.firstWin = true;
+```
+
+---
+
+### 🛠 Code Examples
+
+#### ✅ Incrementing Kills
+
+```ts
+const stats = globalStore.get('stats.kills');
+stats.slime = (stats.slime || 0) + 1;
+globalStore.set('stats.kills', stats);
+```
+
+#### 🧩 Unlocking a New Character
+
+```ts
+const chars = globalStore.get('meta.unlocked.characters');
+if (!chars.includes('knight')) {
+  globalStore.set('meta.unlocked.characters', [...chars, 'knight']);
+}
+```
+
+#### 🔁 Starting a New Run
+
+```ts
+globalStore.set('run', {
+  character: 'rogue',
+  hp: 100,
+  gold: 0,
+  floor: 1,
+  mods: [],
+  status: 'alive',
+  seed: String(Date.now())
+});
+```
+
+#### ⚰️ Ending a Run (death)
+
+```ts
+globalStore.set('run.status', 'dead');
+globalStore.set('stats.deaths', globalStore.get('stats.deaths') + 1);
+```
+
+#### 🧼 Resetting Only Run State
+
+```ts
+globalStore.set('run', {}); // Clears ephemeral state, keeps meta intact
+```
+
+---
+
+### 💡 Design Tips
+
+* Keep `run` and `meta` namespaces separate to avoid accidental overwrites
+* Store arrays for unlocked content (`characters`, `mods`, `achievements`)
+* Use `onChange()` to react to death, floor increase, or mod selection
+* Use a `seed` string for reproducible or daily modes
+* Never mutate nested stats in-place — replace whole object or value
+
+---
+
+### ✅ Plugin Alignment Table
+
+| Rule                           | Coverage                                 |
+| ------------------------------ | ---------------------------------------- |
+| **Ephemeral vs. Persistent**   | ✅ `run` vs. `meta` separation            |
+| **Simple keys**                | ✅ Shallow: `run.hp`, `stats.kills.slime` |
+| **Atomic update examples**     | ✅ Required for kills, unlocks, resets    |
+| **Lifecycle usage**            | ✅ Full `reset()` pattern shown           |
+| **Reactive hooks (suggested)** | 🔁 Mentioned in death/floor events       |
+
+---
+
+### 🔗 See Also
+
+* `usage.mdc` for API details
+* `anti-patterns.mdc` for mutation warnings
+* `example-turn-based-rpg.mdc` for structured party state
+* `example-farming-sim.mdc` for persistent grid + event logic

@@ -1,0 +1,143 @@
+---
+
+id: global-store-example-block-puzzle
+title: Global Store – Example: Block Puzzle Game
+version: 0.2.2
+category: phaser-plugin
+status: active
+--------------
+
+## 🎮 Block Puzzle Game – Example Usage
+
+This example shows how to structure state for a mobile-style block puzzle game (e.g., Candy Crush, Two Dots), including progression, boosters, monetization, and daily re-engagement.
+
+---
+
+### 🧠 Recommended Key Structure
+
+```ts
+// Level progress
+levels.completed = ['001', '002']
+levels.stars.001 = 3
+levels.highScores.001 = 9210
+levels.tutorialSeen = true
+
+// Inventory
+inventory.coins = 540
+inventory.gems = 12
+inventory.boosters = {
+  shield: 2,
+  shuffle: 1
+}
+
+// Settings
+settings.sfxVolume = 0.8
+settings.hintsEnabled = true
+settings.colorblindMode = false
+settings.gridSkin = 'classic'
+
+// Player metadata
+player.name = 'Guest123'
+player.language = 'en'
+player.firstSeenDate = '2024-11-01'
+player.sessionCount = 37
+
+// Shop / Purchases
+shop.purchases = ['starterPack', 'adFree']
+premium.battlePass.active = true
+premium.battlePass.season = 'winter-2025'
+premium.battlePass.level = 12
+premium.battlePass.claimed = ['pass1', 'pass2']
+
+// Ad tracking
+ads.rewardCooldownSeconds = 300
+ads.lastRewardedAdTime = 1700000200000
+
+// Rewards / Events
+rewards.daily.lastClaimed = '2024-11-10'
+rewards.daily.streak = 4
+events.current.weeklyChallengeId = 'icePuzzleX'
+events.completed = ['weeklyFall01', 'limitedGhosts']
+
+// FTUE Flags
+flags.tutorialComplete = true
+flags.firstTimeBoostClaimed = true
+```
+
+---
+
+### 🪪 Common Use Cases
+
+* Track player level progress and 3-star ratings
+* Store quantities of boosters and currencies
+* Configure audio and visual settings
+* Gate events, skins, or shop items behind purchases
+* Time-lock ads and reward cooldowns
+* Maintain streaks and event history for re-engagement
+
+---
+
+### 🛠 Code Examples
+
+#### 🌟 Award Coins
+
+```ts
+const coins = globalStore.get('inventory.coins') ?? 0;
+globalStore.set('inventory.coins', coins + 100);
+```
+
+#### 🌟 Use a Booster
+
+```ts
+const boosters = globalStore.get('inventory.boosters') ?? {};
+globalStore.set('inventory.boosters', {
+  ...boosters,
+  shuffle: Math.max(0, (boosters.shuffle ?? 0) - 1)
+});
+```
+
+#### 📅 Claim Daily Reward
+
+```ts
+globalStore.set('rewards.daily.lastClaimed', new Date().toISOString());
+globalStore.set('rewards.daily.streak', 5);
+```
+
+#### 🏘 Unlock Limited-Time Event
+
+```ts
+const eventsDone = globalStore.get('events.completed') ?? [];
+globalStore.set('events.completed', [...eventsDone, 'weeklyFall01']);
+```
+
+---
+
+### 💡 Pro Tips
+
+* Namespace all currencies and boosters inside `inventory.*`
+* Track per-level progress using `levels.stars.levelId` or similar
+* Avoid storing runtime objects like `currentPuzzleGrid` in global-store
+* Store timestamps as ISO strings or epoch numbers
+* Use `flags.*` for gating FTUE, bonuses, or one-time scenes
+* Replace arrays/objects using atomic updates to trigger listeners
+
+---
+
+### ✅ Alignment with Plugin Rules
+
+| Rule                      | Alignment                                                   |
+| ------------------------- | ----------------------------------------------------------- |
+| **Scoped**                | ✅ Grouped by `levels`, `inventory`, `player`, `flags`, etc. |
+| **Minimalist**            | ✅ No transient session data stored globally                 |
+| **Flexible**              | ✅ Handles cosmetics, purchases, rewards, cooldowns          |
+| **TypeScript-friendly**   | ✅ Fully serializable; easy to model with types              |
+| **No runtime bloat**      | ✅ Dev-controlled updates and access                         |
+| **No deep mutation risk** | ✅ All nested changes shown via object replacement           |
+
+---
+
+### 🔗 See Also
+
+* `usage.mdc` for method reference
+* `examples.mdc` for genre index
+* `anti-patterns.mdc` for what not to store

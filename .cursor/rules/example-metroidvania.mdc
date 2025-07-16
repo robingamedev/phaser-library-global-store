@@ -1,0 +1,150 @@
+---
+
+id: global-store-example-metroidvania
+title: Global Store – Example: Metroidvania
+version: 0.2.2
+category: phaser-plugin
+status: active
+--------------
+
+## 🧩 Metroidvania – Example Usage
+
+This example shows how to structure persistent state for a modern Metroidvania-style game with tile-based maps, permanent upgrades, quests, and world progression.
+
+---
+
+### 🧠 Recommended Key Structure
+
+```ts
+// Abilities (Permanent Upgrades)
+abilities = {
+  doubleJump: true,
+  dash: true,
+  wallClimb: false
+}
+
+// Player Metadata
+player.checkpoint = 'core.vent'
+player.currentZone = 'surface'
+player.firstSeen = '2024-10-01'
+player.difficulty = 'normal'
+
+// Inventory
+inventory = {
+  keys: 2,
+  shards: 4,
+  artifacts: ['emberHeart']
+}
+
+// Bosses
+bosses.defeated = ['sporeQueen']
+
+// NPCs & Interactions
+npcs.met = ['sage', 'gatekeeper']
+npcs.rescued = ['miner']
+
+// Quests & Triggers
+quests.active = ['lostTools']
+flags.trigger.bridgeCollapsed = true
+flags.cutscene.introPlayed = true
+
+// Fast Travel / Warp Points
+warp.unlocked = ['spireTop', 'crystalGate']
+
+// Settings
+settings.brightness = 0.75
+settings.vibration = false
+settings.hudStyle = 'minimal'
+
+// Map Exploration (Abbreviated 4x4 grid)
+map.revealed = {
+  surface: [
+    [1, 1, 0, 0],
+    [1, 1, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0]
+  ]
+}
+
+// Map Notes
+map.notes = [
+  { zone: 'surface', x: 1, y: 1, type: 'secret' },
+  { zone: 'surface', x: 0, y: 3, type: 'unreachable' }
+]
+```
+
+---
+
+### 🛠 Code Examples
+
+#### ✅ Unlocking a New Ability
+
+```ts
+globalStore.set('abilities.wallClimb', true);
+```
+
+#### 🗺️ Revealing a Tile (and triggering change)
+
+```ts
+const grid = globalStore.get('map.revealed.surface') ?? [];
+grid[2][1] = 1;
+globalStore.set('map.revealed.surface', grid); // Must re-set entire array
+```
+
+#### 📍 Updating Checkpoint
+
+```ts
+globalStore.set('player.checkpoint', 'crystalShrine');
+globalStore.set('player.currentZone', 'undergrowth');
+```
+
+#### 📝 Adding a Map Note
+
+```ts
+const notes = globalStore.get('map.notes') ?? [];
+globalStore.set('map.notes', [...notes, {
+  zone: 'undergrowth', x: 2, y: 4, type: 'lockedDoor'
+}]);
+```
+
+#### 💾 Loading from Save File
+
+```ts
+const saved = {
+  abilities: { doubleJump: true, dash: true },
+  player: { checkpoint: 'spireTop', currentZone: 'spire' },
+  bosses: { defeated: ['sporeQueen'] },
+};
+globalStore.reset(saved);
+```
+
+---
+
+### 💡 Pro Tips
+
+* Use `abilities.*` to track power gating (what lets players progress)
+* Group world data under `zones.*` or `map.*` to keep things clean
+* Never mutate map tiles or notes in-place — always reassign entire arrays
+* Use `flags.*` for one-time events, like destroyed bridges or collapsed tunnels
+* `onChange()` works great for upgrades triggering new UI or effects
+
+---
+
+### ✅ Alignment with Plugin Rules
+
+| Rule                      | Alignment                                                |
+| ------------------------- | -------------------------------------------------------- |
+| **Scoped**                | ✅ Namespaced by player, abilities, flags, map, etc.      |
+| **Minimalist**            | ✅ No animation, scene, or per-frame data stored globally |
+| **Flexible**              | ✅ Covers power-ups, quests, map, travel, and UI config   |
+| **TypeScript-friendly**   | ✅ Clear object/array structures for types                |
+| **No runtime bloat**      | ✅ Manual updates only, no proxy magic                    |
+| **No deep mutation risk** | ✅ All changes made via replacement                       |
+
+---
+
+### 🔗 See Also
+
+* `usage.mdc` for method reference
+* `examples.mdc` for other genres
+* `anti-patterns.mdc` for things to avoid

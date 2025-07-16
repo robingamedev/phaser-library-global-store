@@ -1,0 +1,154 @@
+---
+
+id: global-store-example-idle-clicker
+title: Global Store – Example: Idle Clicker
+version: 0.2.2
+category: phaser-plugin
+status: active
+--------------
+
+## 🖱 Idle Clicker – Example Usage
+
+This example models the core data structure of an idle clicker game, including:
+
+* Multiple currencies
+* Timers and cooldowns
+* Passive generators
+* Upgrades and prestige system
+* Offline catch-up logic
+
+It’s inspired by games like *Cookie Clicker*, *AdVenture Capitalist*, and *Idle Slayer*.
+
+---
+
+### 🧠 Recommended Key Structure
+
+```ts
+// 💰 Core currencies
+game.gold = 12804;
+game.gems = 34;
+game.prestigeTokens = 2;
+
+// 🔁 Generators (e.g. mines, farms)
+generators = [
+  {
+    id: 'mine',
+    amount: 5,
+    rate: 1.2,         // gold per second
+    lastCollected: 1722041345682
+  },
+  {
+    id: 'farm',
+    amount: 2,
+    rate: 0.6,
+    lastCollected: 1722041345682
+  }
+];
+
+// ⏳ Offline tracking
+offline.lastPlayedAt = 1722041345000;
+offline.maxHours = 2;  // base offline cap in hours
+upgrades.offlineBonus = 1.5; // multiplier to offline gain
+
+// 🔋 Boosters & temporary effects
+boosts.doubleGold = {
+  active: true,
+  endsAt: 1722041348000
+};
+
+// 🚀 Upgrades & unlocks
+upgrades = {
+  clickPower: 3,
+  generatorRate: 1.25,
+  unlockedAutoMine: true
+};
+
+// 🏆 Prestige & soft-reset
+game.prestigeLevel = 3;
+game.totalGoldEarned = 103482;
+
+// 📘 Flags and tutorial state
+flags.ui.seenPrestigeTutorial = true;
+flags.unlocked.shop = true;
+```
+
+---
+
+### 🛠 Code Examples
+
+#### 💸 Clicking for Gold
+
+```ts
+const clickPower = globalStore.get('upgrades.clickPower') || 1;
+const boost = globalStore.get('boosts.doubleGold.active') ? 2 : 1;
+const earned = clickPower * boost;
+globalStore.set('game.gold', globalStore.get('game.gold') + earned);
+```
+
+#### ⌛ Claiming Generator Gold
+
+```ts
+const now = Date.now();
+const generators = globalStore.get('generators').map(gen => {
+  const elapsed = (now - gen.lastCollected) / 1000; // seconds
+  const gain = elapsed * gen.rate * gen.amount;
+  globalStore.set('game.gold', globalStore.get('game.gold') + gain);
+  return { ...gen, lastCollected: now };
+});
+globalStore.set('generators', generators);
+```
+
+#### 💤 Offline Gain
+
+```ts
+const now = Date.now();
+const last = globalStore.get('offline.lastPlayedAt');
+const hours = Math.min((now - last) / 3600000, globalStore.get('offline.maxHours'));
+const bonus = globalStore.get('upgrades.offlineBonus') || 1;
+const goldPerHour = 500; // Simulated value
+const totalGain = goldPerHour * hours * bonus;
+globalStore.set('game.gold', globalStore.get('game.gold') + totalGain);
+globalStore.set('offline.lastPlayedAt', now);
+```
+
+#### 🔄 Soft Reset for Prestige
+
+```ts
+const prestigeLevel = globalStore.get('game.prestigeLevel') + 1;
+globalStore.set('game.prestigeLevel', prestigeLevel);
+globalStore.set('game.gold', 0);
+globalStore.set('generators', []);
+globalStore.set('upgrades', {});
+globalStore.set('boosts', {});
+```
+
+---
+
+### 💡 Design Tips
+
+* Store timestamps in `Date.now()` format to support offline logic
+* Use array objects (`generators[]`) for scalable generators
+* Keep flags flat and specific (`flags.ui.*`, `flags.unlocked.*`)
+* Separate temporary (`boosts`) from permanent (`upgrades`)
+* Use multipliers instead of hard overrides for better balancing
+
+---
+
+### ✅ Plugin Alignment Table
+
+| Rule                    | Coverage                                    |
+| ----------------------- | ------------------------------------------- |
+| **Timers & cooldowns**  | ✅ `lastCollected`, `endsAt`, `lastPlayedAt` |
+| **Multiple currencies** | ✅ `gold`, `gems`, `prestigeTokens`          |
+| **Atomic updates**      | ✅ `set()` shown for timers & resources      |
+| **Reset safety**        | ✅ Soft-reset pattern included               |
+| **Upgrade flow**        | ✅ `upgrades` vs `boosts` separation         |
+| **Offline tracking**    | ✅ Capped gain and multiplier example        |
+
+---
+
+### 🔗 See Also
+
+* `example-farming-sim.mdc` for time-based grid events
+* `example-roguelite.mdc` for reset patterns and modifiers
+* `anti-patterns.mdc` for object mutation caveats

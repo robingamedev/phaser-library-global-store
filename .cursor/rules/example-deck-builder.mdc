@@ -1,0 +1,168 @@
+---
+
+id: global-store-example-deckbuilder
+title: Global Store – Example: Deckbuilder
+version: 0.2.3
+category: phaser-plugin
+status: active
+--------------
+
+## 🃏 Deckbuilder – Example Usage
+
+This example models a **trading card battler** (inspired by Pokémon TCG and MTG), covering both:
+
+* Persistent meta layer (collection, decks, stats)
+* Temporary battle state (hand, piles, turn info)
+
+It showcases how to separate short-lived combat data from permanent player progress — including how to support **large card pools**, **deck unlocks**, and **player-owned upgrades**.
+
+---
+
+### 🧠 Recommended Key Structure
+
+```ts
+// 📦 Meta Progression (persistent)
+meta.cardLibrary = {
+  strike: { unlocked: true, upgraded: false },
+  block: { unlocked: true, upgraded: false },
+  fireball: { unlocked: true, upgraded: true },
+  poisonFang: { unlocked: false, upgraded: false },
+};
+
+meta.decks = {
+  starter: ['strike', 'strike', 'block'],
+  fire: ['fireball', 'fireball', 'block'],
+};
+meta.decksAvailable = ['starter', 'fire'];
+meta.activeDeck = 'starter';
+
+meta.stats = {
+  matchesWon: 12,
+  matchesLost: 3,
+};
+
+meta.currency = {
+  gold: 120,
+  boosterPacks: 1,
+};
+
+// 🎯 Battle (temporary)
+battle.drawPile = ['strike', 'block', 'fireball'];
+battle.hand = [
+  { id: 'strike', cost: 1, damage: 6 },
+  { id: 'block', cost: 1, block: 5 },
+];
+battle.discardPile = [];
+battle.exhausted = [];
+
+battle.hp = {
+  player: 20,
+  enemy: 15
+};
+
+battle.turn = 3;
+battle.phase = 'player'; // or 'enemy', 'win', 'loss'
+battle.result = null; // becomes 'win' or 'loss'
+
+// 🎌 UI and Tutorial
+flags.ui.seenBattleTutorial = true;
+```
+
+---
+
+### 🃠 Card Schema (Example Object)
+
+```ts
+{
+  id: 'fireball',
+  cost: 2,
+  damage: 10,
+  traits: ['magic', 'fire'],
+  upgraded: false
+}
+```
+
+> Cards in `hand` are full objects. Cards in `drawPile`, `deck`, and `library` should be **IDs** only. Actual card data comes from your external definitions.
+
+---
+
+### 🛠 Code Examples
+
+#### 📥 Drawing a Card
+
+```ts
+const drawPile = globalStore.get('battle.drawPile');
+const hand = globalStore.get('battle.hand');
+
+const nextCard = drawPile.shift();
+hand.push(nextCard);
+
+globalStore.set('battle.drawPile', drawPile);
+globalStore.set('battle.hand', hand);
+```
+
+#### 🗑 Playing a Card (and discarding it)
+
+```ts
+const hand = globalStore.get('battle.hand');
+const discardPile = globalStore.get('battle.discardPile');
+
+const played = hand.splice(1, 1)[0]; // Remove 2nd card
+if (played) discardPile.push(played);
+
+globalStore.set('battle.hand', hand);
+globalStore.set('battle.discardPile', discardPile);
+```
+
+#### 🧹 Resetting Battle After Match Ends
+
+```ts
+if (globalStore.get('battle.result')) {
+  globalStore.delete('battle.drawPile');
+  globalStore.delete('battle.hand');
+  globalStore.delete('battle.discardPile');
+  globalStore.delete('battle.hp');
+  globalStore.delete('battle.phase');
+  globalStore.delete('battle.result');
+  globalStore.delete('battle.turn');
+}
+```
+
+#### 🏆 Updating Win Count
+
+```ts
+const wins = globalStore.get('meta.stats.matchesWon') || 0;
+globalStore.set('meta.stats.matchesWon', wins + 1);
+```
+
+---
+
+### 💡 Design Tips
+
+* Keep battle state **ephemeral and atomic** — always replace full arrays
+* Use **card IDs** in global store — store actual card data in a static lookup
+* Use `meta.cardLibrary` for unlocked/upgrade status
+* Use `meta.decksAvailable` to control progression gating
+* Use `flags.*` for UI and tutorial logic
+
+> 🧠 For large libraries (1000+ cards), avoid deep nesting — store only `cardId`s in state and load full card data from your definitions module.
+
+---
+
+### ✅ Plugin Alignment Table
+
+| Rule                        | Coverage                             |
+| --------------------------- | ------------------------------------ |
+| **Ephemeral session state** | ✅ `battle.*` keys are temporary      |
+| **Atomic replacements**     | ✅ Examples for draw/play/discard     |
+| **Meta vs combat**          | ✅ Clearly namespaced                 |
+| **Card object shape**       | ✅ Card schema and library shown      |
+| **Unlock & deck control**   | ✅ Multiple decks, availability flags |
+
+---
+
+### 🔗 See Also
+
+* `example-turn-based-rpg.mdc` for player stats and gear
+* `example-roguelite.mdc` for resets and meta upgrades
+* `anti-patterns.mdc` for mutation and cleanup issues

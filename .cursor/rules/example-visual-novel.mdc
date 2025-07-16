@@ -1,0 +1,99 @@
+---
+id: global-store-example-visual-novel
+title: Global Store – Example: Visual Novel
+version: 0.2.2
+category: phaser-plugin
+status: active
+---
+
+## 📖 Visual Novel – Example Usage
+
+This example shows how to use `global-store` to manage state in a narrative-heavy visual novel.
+
+---
+
+### 🧠 Recommended Key Structure
+
+```ts
+flags.metInnkeeper = true
+flags.readNoteFromSister = false
+choices.chapter3 = 'forgive'
+choices.log = ['intro.friendly', 'scene2.tease']
+scene.endingChosen = 'betrayal'
+settings.textSpeed = 'medium'
+ui.hasSeenIntroTooltip = true
+```
+
+---
+
+### 🧪 Common Use Cases
+
+- Track player decisions and conditional branches
+- Gate scenes or endings behind prior choices
+- Store settings like text speed or read tooltips
+- Persist global state across chapter transitions
+- Log choice history for recaps or final reports
+
+---
+
+### 🛠 Code Examples
+
+```ts
+// Set a boolean flag
+globalStore.set('flags.readNoteFromSister', true);
+
+// Store a story decision
+globalStore.set('choices.chapter3', 'forgive');
+
+// Append to a log of choices
+const log = globalStore.get('choices.log') ?? [];
+globalStore.set('choices.log', [...log, 'chapter3.forgive']);
+```
+
+```ts
+// React to an ending being chosen
+globalStore.onChange('scene.endingChosen', (ending) => {
+  if (ending === 'betrayal') {
+    this.cameras.main.shake(300);
+  }
+});
+```
+
+```ts
+// Cleanup the listener when leaving the scene
+this.events.once('shutdown', () => {
+  globalStore.offChange('scene.endingChosen', this.handleEnding);
+});
+```
+
+---
+
+### 💡 Pro Tips
+
+- Use `flags.*` for binary yes/no state
+- Use `choices.*` for meaningful forks or dialogue branches
+- Keep `choices.log[]` for post-game analytics, story recaps, or dynamic titles
+- Store persistent visual settings in `settings.*` or `ui.*`
+- Do **not** use `global-store` for one-off animation state or transient UI flags
+
+---
+
+### ✅ Alignment with Plugin Rules
+
+| Rule | Alignment |
+|------|-----------|
+| **Scoped** | ✅ Keys are cleanly grouped: `flags`, `choices`, `scene`, `settings` |
+| **Minimalist** | ✅ Only persistent and meaningful data is stored |
+| **Flexible** | ✅ Shows how to extend with log arrays or conditional UI |
+| **TypeScript-friendly** | ✅ Type inference applies to stored values |
+| **No runtime bloat** | ✅ No logic embedded; listener patterns are manual and lightweight |
+| **No deep mutation risk** | ✅ Uses object replacement for log updates |
+
+---
+
+### 🔗 See Also
+
+- `usage.mdc` for full API reference
+- `examples.mdc` for other game genres
+- `anti-patterns.mdc` for common misuses
+```
