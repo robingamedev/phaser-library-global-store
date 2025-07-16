@@ -3,7 +3,7 @@
 id: global-store-usage
 title: Global Store – Usage Guide
 description: API reference and best practices for using global-store in Phaser projects.
-version: 0.2.4
+version: 0.2.5
 category: phaser-plugin
 status: active
 
@@ -122,7 +122,7 @@ Enable optional dev-time behaviors or enforcement settings.
 ```ts
 store.configure({
   warnOnMutation: true,
-  strict: true
+  strictMode: true
 });
 ```
 
@@ -131,7 +131,7 @@ store.configure({
 | Option             | Description |
 |--------------------|-------------|
 | `warnOnMutation`   | Logs a warning if `.get()` is called but `.set()` never follows (helpful during dev) |
-| `strict`           | Disallows setting/getting undefined paths. Helps catch typos and invalid keys. |
+| `strictMode`           | Disallows setting/getting undefined paths. Helps catch typos and invalid keys. |
 
 > These are dev-mode helpers. Leave off in production builds.
 
@@ -173,7 +173,7 @@ For full autosave/bookmark handling, pair with [`@robingamedev/save-kit`](https:
 ### 🚨 Strict Mode (Optional)
 
 ```ts
-store.configure({ strict: true });
+store.configure({ strictMode: true });
 ```
 
 When enabled:
@@ -233,3 +233,27 @@ Object.entries(store.get('farm.plots')).forEach(([plotId]) => {
 - [`example-metroidvania.mdc`](./example-metroidvania.mdc)
 
 ---
+
+---
+
+## 🧭 Instance vs Singleton – Which Store Pattern to Use?
+
+The plugin recommends `new GlobalStore()` for maximum flexibility — but some projects may prefer a singleton for simplicity.
+
+| Pattern | `new GlobalStore()` | Singleton (`globalStore`) |
+|--------|---------------------|----------------------------|
+| 🧪 Testable | ✅ Can create isolated stores per test | ❌ Shared global state complicates testing |
+| 🧠 Explicit | ✅ You control lifecycle and scope | ❌ Hidden coupling between modules |
+| 🛠 Integration | ✅ Can pass into systems, plugins | ❌ Must rely on shared import path |
+| 🧩 Multi-store | ✅ Supports multiple stores (e.g. debug, multiplayer) | ❌ One store only |
+| 🚀 Setup | Requires one line: `const store = new GlobalStore()` | Zero setup (if exported globally) |
+
+> ✅ Use `new GlobalStore()` for most games  
+
+> 🟡 You may add a global export if you prefer a singleton:
+```ts
+// optional helper
+export const globalStore = new GlobalStore();
+```
+
+

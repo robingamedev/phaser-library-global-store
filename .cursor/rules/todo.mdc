@@ -4,7 +4,7 @@ globs:
 alwaysApply: true
 id: global-store-todo
 title: Global Store – Roadmap & TODO
-version: 0.2.4
+version: 0.2.5
 category: phaser-plugin
 status: active
 
@@ -45,7 +45,7 @@ status: active
 
 ### 🧱 Core Features
 
-- [ ] Create `GlobalStore` class as singleton
+- [ ] Create `GlobalStore` class - `new GlobalStore()`
 - [ ] Support `set`, `get`, `has`, `delete`
 - [ ] Support nested key paths (e.g. `player.hp`, `farm.plots.3.watered`)
 - [ ] Implement `reset()` and `dump()`
@@ -83,7 +83,7 @@ status: active
 
 ### 📘 README.md
 
-- [ ] Add install instructions + singleton usage
+- [ ] Add install instructions + usage of `new GlobalStore()` (and singleton usage if preferred)
 - [ ] Add `set`, `get`, `onChange`, `delete`, `reset`, `dump` examples
 - [ ] Include `.configure({ warnOnMutation, strict })` in usage
 - [ ] Add section: "How to Structure Your Store" (dot-path naming, examples)
@@ -100,6 +100,12 @@ status: active
 - [ ] Add “Dev Guide” outlining `.configure`, test tips, listener strategies
 - [ ] Add “Design Considerations” explaining reference equality, no Proxies, etc.
 
+
+- [ ] Add “Glossary” section to README.md
+  - [ ] Clarify naming intent: `npcAffinity.charId = score`, `farm.plots = { [id]: { crop, watered } }`
+  - [ ] Define key schema terms: `meta`, `match`, `inventory`, `npcAffinity`, etc.
+  - [ ] Explain state categories: persistent vs resettable vs ephemeral, etc
+  - [ ] Helps devs understand structure philosophy at a glance
 ---
 
 ## 🔁 PHASE 4 – Demo Project: *The Camp and the Shrine*
