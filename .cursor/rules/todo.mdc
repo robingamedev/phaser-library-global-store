@@ -4,7 +4,7 @@ globs:
 alwaysApply: true
 id: global-store-todo
 title: Global Store – Roadmap & TODO
-version: 0.2.5
+version: 0.2.6
 category: phaser-plugin
 status: active
 
@@ -37,11 +37,18 @@ status: active
 - [x] Define clear structure for `.onChange`, `.offChange`
 - [x] Decide `.mdc` files are not public docs — they drive agent output only
 
+- [x] Create and update `.cursor/rules/status.mdc` with phase 1 work
 ---
 
 ## 🔁 PHASE 2 – Plugin Code Implementation
 
 > Everything below refers to actual code, not structural rules.
+
+## Scaffold
+
+- [ ] Scaffold plugin in `src/GlobalStore.ts`
+- [ ] Configure TypeScript (`tsconfig.json`)
+- [ ] Set up build system (`tsc`, `rollup`, or `vite`)
 
 ### 🧱 Core Features
 
@@ -75,6 +82,7 @@ status: active
   - [ ] strict mode rejections
   - [ ] warnOnMutation triggers
 
+- [ ] Finally - update `.cursor/rules/status.mdc` with phase 2 work
 ---
 
 ## 🔁 PHASE 3 – Human-Facing Documentation
@@ -106,6 +114,8 @@ status: active
   - [ ] Define key schema terms: `meta`, `match`, `inventory`, `npcAffinity`, etc.
   - [ ] Explain state categories: persistent vs resettable vs ephemeral, etc
   - [ ] Helps devs understand structure philosophy at a glance
+
+- [ ] Finally - update `.cursor/rules/status.mdc` with phase 3 work
 ---
 
 ## 🔁 PHASE 4 – Demo Project: *The Camp and the Shrine*
@@ -132,8 +142,54 @@ status: active
   - Shows `globalStore.dump()` as JSON
   - Logs every triggered `onChange()` with timestamps
 
+- [ ] Finally - update `.cursor/rules/status.mdc` with phase 4 work
+
+
+## 📦 PHASE 5: NPM Packaging & Release
+
+### 🧰 NPM Metadata
+- [ ] Create `package.json` with:
+  - name, version, description
+  - license, keywords
+  - `"type": "module"`
+  - `main`, `types`, `"exports"` fields
+  - `"files"` array to include only `dist/`, `README.md`
+  - `repository`, `author`, `bugs`, `homepage`
+
+### 📦 Build & Types
+- [ ] Build output (`tsc` or bundler)
+- [ ] Emit `.d.ts` type declarations
+- [ ] Test via `npm link` or local install
+- [ ] Confirm tree-shaking and import friendliness
+- [ ] Create `src/index.ts` that re-exports all public classes and types
+  - [ ] Prevents Vite/ESM resolution issues
+  - [ ] Ensures proper `main`, `types`, and `exports` targeting
+
+### 🚀 Publish
+- [ ] Run `npm login`
+- [ ] Publish: `npm publish --access public`
+- [ ] Tag version: `npm version patch | minor | major`
+- [ ] Push release notes and tag to GitHub
+- [ ] Expand README.md to include better instructions based on the project's current state.
+- [x  Link to NPM and demo in `README.md`
+
+- [ ] Finally - update `.cursor/rules/status.mdc` with phase 5 work
+
+
+
 ## 🧭 Future Features & Stretch Ideas
 
 - [ ] Add optional Phaser Scene mixin for auto-cleanup of `onChange` listeners
 - [ ] Add benchmarking suite (100 keys, 1K, 10K keys under mutation stress)
+- [ ] Add Vitest + test suite if core logic grows beyond surface API
 
+
+- [ ] Finally - update `.cursor/rules/status.mdc` with phase 5 work
+
+
+
+## 🧭 Future Features & Stretch Ideas
+
+- [ ] Add optional Phaser Scene mixin for auto-cleanup of `onChange` listeners
+- [ ] Add benchmarking suite (100 keys, 1K, 10K keys under mutation stress)
+- [ ] Add Vitest + test suite if core logic grows beyond surface API

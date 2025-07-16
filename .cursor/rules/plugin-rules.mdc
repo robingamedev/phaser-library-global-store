@@ -1,0 +1,140 @@
+---
+
+id: plugin-rules
+title: Phaser Plugin Scaffold – Shared Rules
+version: 1.0.1
+category: phaser-plugin
+status: active
+
+---
+
+## 📁 Project Structure
+
+- Source code lives in `src/`
+- Plugin entry point is `src/index.ts` and must export all public symbols
+- Output goes to `dist/` (ES module format)
+- Demo project lives in `demo/` and is included in the GitHub repo
+- `.mdc` files live in `/rules/` or root and are not included in published output
+
+---
+
+## ⚙️ Build System
+
+- ✅ Use **Vite** as the default build and dev tool
+- `vite.config.ts` should support both the plugin and the demo app
+- Build script should produce:
+  - `dist/index.js`
+  - `dist/index.d.ts`
+  - ES module exports (`type: "module"` in `package.json`)
+
+---
+
+## 🧱 Plugin Core Rules
+
+- Written in TypeScript
+- Exported as a class (e.g. `GlobalStore`)
+- Devs import via `import { GlobalStore } from '...'`
+- Plugin must support `.configure(options)` pattern
+  - Example: `{ strictMode: true, warnOnMutation: true }`
+- Plugins must not store or mutate:
+  - Phaser-specific references (camera, tweens, physics, etc.)
+  - DOM nodes, scene objects, or circular structures
+
+---
+
+## 📦 NPM Package Standards
+
+- `package.json` must include:
+  - `type: "module"`
+  - `"main"`, `"types"`, `"exports"` → all point to `dist/`
+  - `"files"` includes only `dist/`, `README.md`
+  - `prepublishOnly` script runs `vite build`
+- `src/index.ts` must re-export all public classes/types
+- Run `npm pack` to verify output before publishing
+- Demo should not break tree-shaking in consumer projects
+
+---
+
+## 🚀 Demo Project Requirements
+
+- ✅ Built using **Phaser 3 + TypeScript**
+- ✅ Uses your plugin via relative import or `npm link`
+- ✅ Must be deployed to GitHub Pages via `.github/workflows/deploy.yml`
+- `demo/` is published to NPM alongside the plugin (same package)
+- Must include minimal real-world use of the plugin’s core features
+
+---
+
+## 🧪 Testing (Optional Per Plugin)
+
+- ❌ Not required by default
+- ✅ May be added per-plugin if internal logic justifies it
+- Future rule: add `test/` folder using `Vitest` if tests are added
+- CI integration is optional, depending on test complexity
+
+---
+
+## 🧼 Linting & Formatting
+
+- ❌ Not required
+- ✅ Projects may add Prettier or ESLint later, but it is not enforced
+
+---
+
+## 🧾 Documentation Expectations
+
+- `README.md` must include:
+  - Install instructions
+  - How to import and instantiate the plugin
+  - Basic usage with `set`, `get`, `onChange`, `configure`
+  - Demo link and NPM badge
+- `.mdc` files are internal rules — not exposed as public docs
+- If real documentation is needed, create separate `/docs/` files
+
+---
+
+## 🔁 Optional Conventions
+
+| Convention | Status |
+|------------|--------|
+| `configure()` for options | ✅ Required |
+| `.mdc` rule system | ✅ Required |
+| Centralized `src/index.ts` | ✅ Required |
+| Testing via Vitest | 🟡 Optional |
+| ESLint/Prettier | 🟡 Optional |
+| CLI utilities | ❌ Not in scope |
+
+---
+
+## 🧭 Rule Authoring & Roadmapping
+
+- Each plugin must include a `todo.mdc` file outlining roadmap phases
+- The first phase must always be: `Phase 1 – Rule Definitions`
+  - This defines naming conventions, schema rules, API boundaries, and philosophy
+- All phases in the `todo.mdc` should follow this structure:
+  - `Phase 1 – Rule Definitions`
+  - `Phase 2 – Plugin Implementation`
+  - `Phase 3 – Public Documentation`
+  - `Phase 4 – Demo Project`
+  - `Phase 5 – NPM Packaging & Release`
+  - `Phase 6 – Post-Release Maintenance`
+- After completing a phase, update `.cursor/rules/status.mdc` with:
+  - ✅ Completed phases
+  - 🔁 In-progress phases
+  - ❌ Skipped or deferred items
+- The status.mdc should follow the format used in:
+  [`visual-novel-dialogue`](https://raw.githubusercontent.com/robingamedev/phaser-library-visual-novel-dialogue/refs/heads/main/.cursor/rules/status.mdc)
+
+
+🔒 Frontmatter Protection Rule
+> Frontmatter in .mdc files (the YAML block at the top) must never be edited, removed, or replaced by automated tools or agents. Only the project owner may modify frontmatter. All automated edits must begin after the frontmatter and preserve it exactly as written.
+
+---
+
+## 🔗 Related
+
+- See [`plugin-template-demo`](https://github.com/robingamedev/phaser-library-visual-novel-dialogue) for reference project
+- All plugins using this scaffold must be buildable with `vite`, publishable via `npm`, and deployable to GitHub Pages with their demo
+
+---
+
