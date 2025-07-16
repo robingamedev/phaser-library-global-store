@@ -1,54 +1,90 @@
 ---
+
 id: global-store-example-visual-novel
 title: Global Store – Example: Visual Novel
-version: 0.2.2
+description: How to use global-store in branching, choice-driven narrative games.
+version: 0.2.3
 category: phaser-plugin
 status: active
----
+--------------
 
-## 📖 Visual Novel – Example Usage
+## 📘 Visual Novel – Example Usage
 
-This example shows how to use `global-store` to manage state in a narrative-heavy visual novel.
+This example covers **branching dialogue**, **player choices**, and **persistent world state** in a visual novel or dialogue-heavy narrative game.
+
+It separates permanent player progress (choices made, flags triggered) from current scene/session state.
 
 ---
 
 ### 🧠 Recommended Key Structure
 
 ```ts
-flags.metInnkeeper = true
-flags.readNoteFromSister = false
-choices.chapter3 = 'forgive'
-choices.log = ['intro.friendly', 'scene2.tease']
-scene.endingChosen = 'betrayal'
-settings.textSpeed = 'medium'
-ui.hasSeenIntroTooltip = true
+// 📖 Persistent story flags
+flags.story.metInnkeeper = true;
+flags.story.escapedWolves = true;
+flags.story.accusedMayor = false;
+
+// 🧠 Character relationship tracking (optional)
+meta.affinity = {
+  innkeeper: 4,
+  mayor: -2
+};
+
+// 💌 Player choices
+choices = {
+  openingQuestion: 'Who are you?',
+  mealSelection: 'Stew',
+  innkeeperFlirted: true
+};
+
+// 📍 Current scene/session state (ephemeral)
+scene = {
+  id: 'scene_07_well',
+  scrollY: 220,
+  selectedLine: 3
+};
+
+// 📦 Save metadata (optional)
+saveMeta = {
+  lastSave: '2025-07-15T14:30:00Z',
+  playtime: 12900, // seconds
+  chapter: 'Act 2 – The Quiet Inn'
+};
 ```
 
 ---
 
-### 🧪 Common Use Cases
-
-- Track player decisions and conditional branches
-- Gate scenes or endings behind prior choices
-- Store settings like text speed or read tooltips
-- Persist global state across chapter transitions
-- Log choice history for recaps or final reports
-
----
-
-### 🛠 Code Examples
+### 📋 Example: Storing Player Decisions
 
 ```ts
-// Set a boolean flag
-globalStore.set('flags.readNoteFromSister', true);
-
-// Store a story decision
-globalStore.set('choices.chapter3', 'forgive');
-
-// Append to a log of choices
-const log = globalStore.get('choices.log') ?? [];
-globalStore.set('choices.log', [...log, 'chapter3.forgive']);
+globalStore.set('choices.innkeeperFlirted', true);
 ```
+
+### 🔁 Tracking Relationships
+
+```ts
+const affinity = globalStore.get('meta.affinity.innkeeper') || 0;
+globalStore.set('meta.affinity.innkeeper', affinity + 1);
+```
+
+### 🎯 Branching Dialogue Example
+
+```ts
+if (globalStore.get('flags.story.metInnkeeper')) {
+  showLine("Nice to see you again.");
+} else {
+  showLine("Welcome, traveler.");
+}
+```
+
+### 💬 Restoring Scene State (scroll position, last selected)
+
+```ts
+const { scrollY, selectedLine } = globalStore.get('scene');
+dialogUI.restore(scrollY, selectedLine);
+```
+
+### 🔔 Reacting to Key Plot Events
 
 ```ts
 // React to an ending being chosen
@@ -59,41 +95,67 @@ globalStore.onChange('scene.endingChosen', (ending) => {
 });
 ```
 
+---
+
+### 💡 Design Tips
+
+* Use `flags.story.*` for **narrative state**, not UI
+* Use `choices.*` for **actual selections made**
+* Use `meta.affinity.*` for numerical tracking
+* Always treat updates as **atomic replacements**
+* Clear ephemeral `scene.*` state when transitioning between chapters
+
+> ✅ The global store is ideal for save systems — you can `dump()` to JSON and restore using `reset()`
+
+---
+
+### 🧠 Object Schema Examples
+
+#### 💘 Affinity Structure
+
 ```ts
-// Cleanup the listener when leaving the scene
-this.events.once('shutdown', () => {
-  globalStore.offChange('scene.endingChosen', this.handleEnding);
-});
+meta.affinity = {
+  innkeeper: 4,
+  mayor: -1,
+  blacksmith: 0
+};
+```
+
+#### 🗂 Scene Save Snapshot
+
+```ts
+scene = {
+  id: 'scene_04_meadow',
+  scrollY: 120,
+  selectedLine: 2
+};
+```
+
+#### 🏷 Choice Storage
+
+```ts
+choices = {
+  firstMeal: 'chicken',
+  flirtedWithInnkeeper: true
+};
 ```
 
 ---
 
-### 💡 Pro Tips
+### ✅ Plugin Alignment Table
 
-- Use `flags.*` for binary yes/no state
-- Use `choices.*` for meaningful forks or dialogue branches
-- Keep `choices.log[]` for post-game analytics, story recaps, or dynamic titles
-- Store persistent visual settings in `settings.*` or `ui.*`
-- Do **not** use `global-store` for one-off animation state or transient UI flags
-
----
-
-### ✅ Alignment with Plugin Rules
-
-| Rule | Alignment |
-|------|-----------|
-| **Scoped** | ✅ Keys are cleanly grouped: `flags`, `choices`, `scene`, `settings` |
-| **Minimalist** | ✅ Only persistent and meaningful data is stored |
-| **Flexible** | ✅ Shows how to extend with log arrays or conditional UI |
-| **TypeScript-friendly** | ✅ Type inference applies to stored values |
-| **No runtime bloat** | ✅ No logic embedded; listener patterns are manual and lightweight |
-| **No deep mutation risk** | ✅ Uses object replacement for log updates |
+| Rule                    | Coverage                                   |
+| ----------------------- | ------------------------------------------ |
+| Meta vs ephemeral state | ✅ `flags.*` vs `scene.*`                   |
+| Atomic update examples  | ✅ All data replacements use set()          |
+| Typed example objects   | ✅ `meta`, `scene`, `choices` schemas shown |
+| Save integration ready  | ✅ Uses clean dump/reset structure          |
+| Relationship tracking   | ✅ Via `meta.affinity.*`                    |
 
 ---
 
 ### 🔗 See Also
 
-- `usage.mdc` for full API reference
-- `examples.mdc` for other game genres
-- `anti-patterns.mdc` for common misuses
-```
+* `example-turn-based-rpg.mdc` for HP/stats/equipment
+* `example-deckbuilder.mdc` for card-based progression
+* `anti-patterns.mdc` for mutation and listener pitfalls

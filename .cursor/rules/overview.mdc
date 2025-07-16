@@ -1,88 +1,139 @@
 ---
-description: 
-globs: 
-alwaysApply: true
----
----
+
 id: global-store-overview
 title: Global Store – Overview
-version: 0.2.2
+description: Core design goals, key patterns, and usage philosophy for the global-store plugin.
+version: 0.2.4
 category: phaser-plugin
 status: active
+alwaysApply: true
 ---
 
-## 🔐 What It Does
+## 🌐 What Is Global Store?
 
-This plugin uses a **module-level singleton** — simply import and use. No need to instantiate a class.
+**Global Store** is a simple, reactive key-value store for Phaser games.
+
+It lets you:
+- Share state between scenes
+- Watch for changes (`onChange`)
+- Store nested data using dot-paths
+- Avoid tangled scene variables or awkward JSON objects
+
+It’s designed for **clarity and control**, not magic frameworks.
+
+---
+
+## 🧱 Plugin Philosophy
+
+| Principle              | Description |
+|------------------------|-------------|
+| ⚡ Simple API          | `.get()`, `.set()`, `.onChange()` – that’s it |
+| 🧱 Structured State     | Dot-paths, not flat blobs (`player.hp`, `farm.plots.2`) |
+| 🔁 Reactive            | Register triggers for key changes |
+| 💾 Save-Ready         | Works with `dump()` / `reset()` for save/load |
+| 🧠 Plugin-Agnostic     | Integrates cleanly with UI, dialogue, or combat plugins |
+| 🔍 Transparent         | You own all game logic — no black box state |
+
+---
+
+## 🧠 How to Structure Your Store
+
+Organize state around **scope and permanence**:
+
+| Namespace | Use For |
+|-----------|---------|
+| `meta.*`  | Persistent progression – upgrades, unlocks, stats |
+| `player.*` | Current stats – hp, coins, energy |
+| `run.*` or `match.*` | Ephemeral gameplay state – combat, deck, round data |
+| `scene.*` | Per-area flags – visited, cutscene played |
+| `daily.*` | Temporary 24-hour game flags – cookedToday, petDog |
+| `inventory.*` | Player items, seeds, currencies |
+| `npcAffinity.*` | Relationship scores by ID |
+| `farm.plots.*` | Named or ID-based slot systems |
+| `meta.collection.*` | Quantity-based systems (cards, relics, recipes) |
+
+---
+
+## 🔑 Common Patterns
+
+### ✅ ID-Only Tracking (for scalable unlocks)
 
 ```ts
-import globalStore from '@robingamedev/global-store';
+store.set('meta.unlockedRelics', ['dash-stone', 'revive-charm']);
 ```
 
-The `global-store` plugin provides a **singleton, in-memory key-value store** for Phaser games. It allows developers to share, read, and write arbitrary data across scenes without relying on the Phaser Registry or custom globals.
+### ✅ Quantity Maps (for card collections, inventory)
 
-It’s intentionally simple, but flexible enough to:
+```ts
+store.set('meta.collection', {
+  strike: 12,
+  fireball: 3,
+  focus: 2
+});
+```
 
-- Group keys by namespaces (e.g., `player.hp`, `scene.title.fadeOut`)
-- Export/import state manually
-- Hook into data changes via `onChange()` observers (see `usage.mdc`)
+### ✅ Dot-path State
 
-This plugin **does not persist data** on its own — but it’s fully compatible with save systems, like `save-kit`.
+```ts
+store.set('farm.plots.3.watered', true);
+store.set('scene.village.cutsceneSpringFestival', false);
+```
 
-> ⚠️ This plugin is not a wrapper around Phaser’s built-in Registry.  
-> It offers a more modular, namespaced, and testable alternative — designed for clean cross-scene data management.
+### ✅ Resetting Ephemeral State
 
-> 🎯 Unlike Redux, this plugin does not require reducers, actions, or immutable state.  
-> It favors simplicity, dot-path access, and Phaser-style flexibility.
-
-> 📘 See `usage.mdc` for a full method reference and `set/get/onChange` examples.
-
----
-
-## 🧱 Use Cases
-
-- Store player status (`player.hp`, `inventory.coins`)
-- Track scene progression (`scene.intro.shown`)
-- Bridge data between scenes (`battle.options.escapeAllowed`)
-- Use alongside other plugins without global coupling
-
----
-
-## 🌐 Compatibility
-
-This plugin targets modern ESM-based browsers. It works in:
-
-- ✅ Chromium-based browsers (Chrome, Edge)
-- ✅ Firefox
-- ✅ Safari
-- ✅ Any ESM-compatible game build (Webpack, Vite, etc.)
-
-It does not include legacy UMD builds or support for Internet Explorer.
-
-> ⚠️ **Performance Note:** The store handles thousands of keys just fine, but you should avoid dumping giant level blueprints, full animation trees, or scene-local objects into it.
+```ts
+store.delete('match');
+store.set('match', {
+  deck: ['strike', 'defend'],
+  hp: 30
+});
+```
 
 ---
 
-## 🎯 Design Goals
+## 🚫 Common Mistakes
 
-- 🧠 **Simple**: One import, one singleton, one pattern
-- 🧱 **No Phaser dependency**: Can be used in other JS/TS contexts
-- 🛠 **Developer-owned structure**: You decide how to organize your keys
-- 🔄 **Optional reactivity**: Use `onChange()` if needed
-- 🧩 **TypeScript-native**: All public methods and `onChange()` signatures are typed. Works in both TS and JS.
-- ⚠️ **Configurable strictness**: Developers can enable `strictMode` to throw on invalid keys or allow silent fails for production safety.
+See [`anti-patterns.mdc`](./antipatterns.mdc) for warnings about:
+
+- In-place mutation of `.get()` results
+- Using `hasThing` booleans instead of ID arrays
+- Overwriting entire nested objects like `inventory`
+- Storing full objects instead of IDs
 
 ---
 
-## 🚫 Advanced Suggestions (Rejected for MVP)
+## 📚 Learn by Example
 
-| Suggestion | Verdict |
-|-----------|---------|
-| ✅ **Custom Key Validators** | Worth considering in `configure()` for v1.1+ |
-| ❌ **Optional Deep Equality** | Too complex / slow — don’t add it |
-| ✅ **Scene Helper for Listener Cleanup** | Already planned — Phase 3 utility |
-| ✅ **TS Usage Example** | Scheduled in Phase 3 |
-| ❌ **Migration Guide (Redux/Registry)** | Not worth building |
-| ✅ **Performance Note** | Included above and in `usage.mdc`
+| Example File | Genre |
+|--------------|--------|
+| `example-visual-novel.mdc` | Branching flags, relationship tracking |
+| `example-turn-based-rpg.mdc` | Meta vs battle state separation |
+| `example-farming-sim.mdc` | Crops, animals, weather, daily routines |
+| `example-roguelite.mdc` | Meta unlocks, run state, death logs |
+| `example-deckbuilder.mdc` | Large collection systems, match decks |
+
+> Each file includes realistic schemas, reactivity, and reset logic.
+
+---
+
+## 💡 When to Use Global Store
+
+Use it when:
+- You need to persist values between scenes
+- You want to react to changing values (e.g. quest progress, shop unlocks)
+- You’re building complex state trees and want clean organization
+- You want save/load compatibility without extra tools
+
+Don’t use it for:
+- **Ephemeral animations**
+- **Scene-only object references** (cameras, tweens, physics bodies)
+
+---
+
+## 🔗 See Also
+
+- [`usage.mdc`](./usage.mdc) – `.get`, `.set`, `.onChange` API reference
+- [`anti-patterns.mdc`](./antipatterns.mdc) – What not to do
+- [`todo.mdc`](./todo.mdc) – Plugin roadmap and polish goals
 ```
 

@@ -1,105 +1,108 @@
 ---
-description: 
+description: Roadmap of the project
 globs: 
 alwaysApply: true
----
----
 id: global-store-todo
 title: Global Store – Roadmap & TODO
-version: 0.2.2
+version: 0.2.4
 category: phaser-plugin
 status: active
----
-
-## 🧭 PHASE 1 – Planning & Scope
-
-- [x] Define plugin responsibilities (singleton, in-memory, dev-managed)
-- [x] Confirm namespace style and nested key access
-- [x] Decide not to auto-persist — devs control export/import
-- [x] Decide to support `onChange()` and `offChange()` for key listeners
-- [x] Lock in core API: `set`, `get`, `has`, `delete`, `reset`, `dump`
-- [x] Clarify plugin relationship with `save-kit` (complementary, not overlapping)
 
 ---
 
-## 🧱 PHASE 2 – Core Plugin Development
+## ✅ PHASE 1 – Core Design & Rule Definitions
 
-- [ ] Implement singleton store module
-- [ ] Support nested key paths (e.g., `scene.title.fadeOut`)
-- [ ] Implement `set`, `get`, `has`, `delete`
-- [ ] Implement `reset(obj)` and `dump()`
-- [ ] Add `onChange(key, callback)` observer system
-- [ ] Add `offChange(key, callback)` unsubscribe method
-- [ ] Only trigger callback if value changes (`!==`)
-- [ ] Write unit tests for all core methods
-- [ ] Write plugin in TypeScript with type-safe public API
-- [ ] Export proper types via `index.d.ts` or inline with ESM bundle
-- [ ] Add `configure({ strictMode })` support
-- [ ] Enforce rules for invalid key formats
-- [ ] Block reserved keys like `__proto__`
-- [ ] Unit tests for both strict + silent modes
-- [ ] Validate keys in `strictMode`
-- [ ] Block empty string, bad dot patterns
-- [ ] Warn on extreme nesting depth
-- [ ] Validate and block dangerous root-level keys (`__proto__`, `constructor`, `prototype`)
-- [ ] Include TypeScript types for all public methods and listener signatures
-
----
-
-## 📘 PHASE 3 – Documentation
-
-- [ ] Write `README.md` for GitHub/NPM
-  - [ ] Installation instructions
-  - [ ] Singleton import pattern
-  - [ ] `set`, `get`, `has`, `reset`, `dump` examples
-  - [ ] Mention `strictMode` and key structure
-  - [ ] Add FAQ: “Why not use Phaser Registry or Redux?”
-  - [ ] Add example of using `globalStore.dump()` + `reset()` with save-kit
-  - [ ] Add "Why not use X?" comparison table
-
-- [ ] Add “Quick Start” section to `README.md`
-  - [ ] 10-line usable example with `set`, `get`, `onChange`
-  - [ ] Should be visible early in the README
-
-
-- [ ] `usage.mdc`: Document public API + strict mode behavior
-  - [ ] Full method signatures
-  - [ ] Edge case examples (`undefined`, invalid keys)
-  - [ ] Developer responsibility for cleanup (`offChange`)
-- [ ] Add “bulk cleanup pattern” for scenes with many listeners
-
-- [ ] Add “Common Pitfalls FAQ” to `usage.mdc`
-  - [ ] Why `onChange` doesn’t trigger
-  - [ ] Why `offChange` is necessary
-  - [ ] Debugging strange reactivity issues
-
-
-- [ ] `examples.mdc`: Real game genre patterns
-  - [ ] For each genre, show:
-    - [ ] 🧠 Recommended key structure
-    - [ ] 🧪 Realistic use cases
-    - [ ] 🛠 Code examples (`set`, `get`, `onChange`)
-    - [ ] 💡 Optional “pro tips” per genre
-  - [ ] Goal: A developer should be able to say:
-    > “Ah — my game is like this. I’ll copy that pattern.”
-
-- [ ] `anti-patterns.mdc`: Warnings and misuses
-  - [ ] At least 5 examples with fixes
-  - [ ] Encourage structure, cleanup, and proper scope
-
-- [ ] Add “Dev Patterns” folder in demo project
-  - [ ] Optional: Create one Phaser scene per genre pattern in `examples.mdc`
-  - [ ] Helps serve as live docs
-
-- [ ] Add “Design Considerations” section
-  - [ ] Explain why the store uses reference equality (`!==`) for `onChange()`
-  - [ ] Clarify tradeoffs: no deep observation, no Proxies
-  - [ ] Reinforce: plugin favors simplicity, performance, and control over magic
-  - [ ] Optional: include historical context from Redux, Zustand, MobX, Vue
+- [x] Lock naming convention: dot-path keys, deep nested structures
+- [x] Confirm plugin scope: dev-managed, singleton, in-memory only
+- [x] Decide: no auto-persist — save/load must be explicit (`dump` / `reset`)
+- [x] Confirm: no Proxies, no deep observation — favors performance and clarity
+- [x] Define namespaces: `meta`, `match`, `inventory`, `npcAffinity`, etc.
+- [x] Decide plugin is format-agnostic — schema is dev-defined
+- [x] Decide all data must be serializable — no tweens, cameras, refs
+- [x] Create `.mdc` structure for examples and rules (AI-facing, not docs)
+- [x] Write all genre-specific examples:
+  - [x] Visual Novel
+  - [x] Turn-Based RPG
+  - [x] Farming Sim
+  - [x] Roguelite
+  - [x] Deckbuilder
+  - [x] Idle Clicker
+  - [x] Metroidvania
+- [x] Write core rule files:
+  - [x] `usage.mdc`
+  - [x] `overview.mdc`
+  - [x] `antipatterns.mdc`
+  - [x] `todo.mdc`
+- [x] Define `.configure({ warnOnMutation, strict })` as planned options
+- [x] Define clear structure for `.onChange`, `.offChange`
+- [x] Decide `.mdc` files are not public docs — they drive agent output only
 
 ---
 
-## 🧪 PHASE 4 – Demo Project: "The Camp and the Shrine"
+## 🔁 PHASE 2 – Plugin Code Implementation
+
+> Everything below refers to actual code, not structural rules.
+
+### 🧱 Core Features
+
+- [ ] Create `GlobalStore` class as singleton
+- [ ] Support `set`, `get`, `has`, `delete`
+- [ ] Support nested key paths (e.g. `player.hp`, `farm.plots.3.watered`)
+- [ ] Implement `reset()` and `dump()`
+- [ ] Implement `load(snapshot)` to restore full state
+- [ ] Add `onChange(key, callback)` listener system
+- [ ] Add `offChange(key, callback)` for cleanup
+- [ ] Only trigger `onChange` when value changes by identity (`!==`)
+
+### ⚙️ Configuration & Validation
+
+- [ ] Implement `.configure({ warnOnMutation })`
+- [ ] Implement `.configure({ strict })`
+- [ ] Validate key paths in strict mode (e.g., no `''`, `null`, or invalid nesting)
+- [ ] Block dangerous keys like `__proto__`, `constructor`, `prototype`
+- [ ] Optionally warn on excessive nesting depth
+- [ ] Add optional `has(key)` helper
+- [ ] Consider utility: `merge(key, partialObject)` with shallow fallback
+
+### 🧪 Dev & Type Safety
+
+- [ ] Write all public methods in TypeScript
+- [ ] Export full public types (via `index.d.ts` or inline with ESM)
+- [ ] Add JSDoc comments for all methods and config options
+- [ ] Write tests for:
+  - [ ] core API
+  - [ ] `.onChange` / `.offChange`
+  - [ ] strict mode rejections
+  - [ ] warnOnMutation triggers
+
+---
+
+## 🔁 PHASE 3 – Human-Facing Documentation
+
+> The `.mdc` files are AI-facing rules only. These tasks refer to user-facing docs.
+
+### 📘 README.md
+
+- [ ] Add install instructions + singleton usage
+- [ ] Add `set`, `get`, `onChange`, `delete`, `reset`, `dump` examples
+- [ ] Include `.configure({ warnOnMutation, strict })` in usage
+- [ ] Add section: "How to Structure Your Store" (dot-path naming, examples)
+- [ ] Add "Save/Load with `save-kit`" example (`dump` + `reset`)
+- [ ] Add comparison table: GlobalStore vs Redux vs Zustand vs Phaser Registry
+- [ ] Add FAQ: Why not reactive Proxies? Why not use Redux?
+
+### 📄 Additional Docs
+
+- [ ] Create `USAGE.md` for detailed method references and warnings
+- [ ] Create `ANTI-PATTERNS.md` with real-world bad vs good examples
+- [ ] Add quick-start: 10-line snippet with `set`, `get`, `onChange`
+- [ ] Add “bulk cleanup pattern” for listener-heavy scenes
+- [ ] Add “Dev Guide” outlining `.configure`, test tips, listener strategies
+- [ ] Add “Design Considerations” explaining reference equality, no Proxies, etc.
+
+---
+
+## 🔁 PHASE 4 – Demo Project: *The Camp and the Shrine*
 
 - [ ] Scene: **Campfire**
   - Modify `player.name`, `settings.audio.muted`
@@ -123,16 +126,8 @@ status: active
   - Shows `globalStore.dump()` as JSON
   - Logs every triggered `onChange()` with timestamps
 
+## 🧭 Future Features & Stretch Ideas
 
-
-## 🔮 Future Ideas and Enhancements
-
-
-
-### Integration
-- [ ] Optional Phaser Scene mixin for auto cleanup of listeners
-
-### Documentation
-- [ ] Create Performance benchmarks with 100, 1K, and 10K keys
-
+- [ ] Add optional Phaser Scene mixin for auto-cleanup of `onChange` listeners
+- [ ] Add benchmarking suite (100 keys, 1K, 10K keys under mutation stress)
 

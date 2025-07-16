@@ -2,153 +2,256 @@
 
 id: global-store-example-farming-sim
 title: Global Store – Example: Farming Sim
-version: 0.2.2
+description: How to use global-store for farming/life sims with crops, animals, weather, routines, and unlocks.
+version: 0.2.4
 category: phaser-plugin
 status: active
---------------
+
+---
 
 ## 🌾 Farming Sim – Example Usage
 
-This example demonstrates how to organize a persistent global state for a life sim or farming game, inspired by Stardew Valley, Animal Crossing, and My Time at Sandrock.
+This example demonstrates how to manage **daily life**, **crop care**, **animal tracking**, **calendar-based events**, and **player stats** using global-store.
 
-It includes crop fields, NPC relationships, crafting systems, daily resets, animals, and home upgrades.
+Inspired by games like *Harvest Moon*, *Story of Seasons*, and *Coral Island*, it emphasizes clean separation between **persistent state** (`meta.*`, `player.*`, `farm.*`) and **resettable session flags** (`scene.*`, `daily.*`).
 
 ---
 
 ### 🧠 Recommended Key Structure
 
 ```ts
-// 🗓 Calendar & Seasons
-calendar.day = 15;
-calendar.season = 'summer';
-calendar.year = 2;
+// 📦 Meta (unlocked systems, upgrades, name)
+meta = {
+  slotId: 2,
+  playerName: 'Willow',
+  farmName: 'Silverroot',
+  houseUpgrades: ['kitchen'],
+  toolUnlocks: ['axe', 'fishingRod'],
+  cropUnlocks: ['turnip', 'carrot'],
+  animalTypes: ['chicken', 'cow']
+};
 
-// 🌱 Field (tile-based, object array)
-fields = [
-  { x: 1, y: 2, crop: 'wheat', stage: 2, watered: true },
-  { x: 2, y: 3, crop: 'carrot', stage: 1, watered: false }
-];
+// 📆 Calendar / Daily Status
+calendar = {
+  season: 'spring',
+  day: 6,
+  year: 1,
+  weather: 'rain', // 'sun', 'rain', 'storm', 'snow'
+  festivalToday: null // or 'springFestival'
+};
 
-// 🌦️ Weather (stored, not generated here)
-world.weather = 'rainy';
+// 🧍 Player Stats
+player = {
+  coins: 420,
+  energyMax: 100,
+  energyCurrent: 68,
+  hearts: 5,
+  stamina: 84
+};
 
-// 🧑 Player State
-player.stamina = 92;
-player.appearance = { hair: 'braids', clothes: 'overalls' };
-player.checkpoint = 'farm';
-
-// 🏠 House
-home.level = 2;
-home.furniture = [
-  { id: 'bed', x: 2, y: 4 },
-  { id: 'dresser', x: 1, y: 3 }
-];
-
-// 🧰 Inventory
-inventory.wood = 35;
-inventory.stone = 20;
-inventory.seeds = { carrot: 3, wheat: 5 };
-
-// 🔨 Crafting Queues
-crafting.workbench1 = { item: 'scarecrow', remainingTime: 45 };
-crafting.kitchen = null;
+// 🌱 Farm Plots
+farm = {
+  plots: {
+    '1': { crop: 'turnip', growthStage: 3, watered: true },
+    '2': { crop: null, growthStage: 0, watered: false },
+    '3': { crop: 'carrot', growthStage: 1, watered: false }
+  }
+};
 
 // 🐄 Animals
-animals = [
-  { id: 'cow01', name: 'Bessie', fed: true, happy: true },
-  { id: 'chicken01', name: 'Peep', fed: false, happy: false }
-];
-
-// 🤝 Relationships
-npcs.alex = {
-  hearts: 4,
-  giftedToday: true,
-  married: false
-};
-npcs.mayor = {
-  hearts: 2,
-  giftedToday: false
+barn = {
+  animals: {
+    'cow01': { type: 'cow', name: 'MooMoo', fed: true, affection: 12 },
+    'chicken01': { type: 'chicken', name: 'Cluckles', fed: false, affection: 5 }
+  }
 };
 
-// 🎁 Festival Flags
-flags.event.springFestival = true;
-flags.event.eggHunt = false;
+// 🎒 Inventory
+inventory = {
+  seeds: { turnip: 5, carrot: 2 },
+  crops: { turnip: 4 },
+  resources: { wood: 18, stone: 9 },
+  tools: { hoe: 1, wateringCan: 0, axe: 1 }
+};
 
-// ✉️ Mail
-inbox = [
-  { id: 'letter1', read: true },
-  { id: 'letter2', read: false }
-];
+// 🧑‍🤝‍🧑 NPC Relationships
+npcAffinity = {
+  clara: 27,
+  bo: 11,
+  mayor: 43
+};
+
+// 🎯 Daily Flags (reset per day)
+daily = {
+  petDog: false,
+  visitedShop: false,
+  cookedToday: true
+};
+
+// 🎭 Scene Visit Flags
+scene = {
+  farm: { visited: true },
+  barn: { cutsceneSeen: true },
+  village: { cutsceneSpringFestival: false }
+};
 ```
 
 ---
 
-### 🛠 Code Examples
-
-#### ✅ Watering a Crop (Atomic replacement)
+### 🌿 Crop Watering & Growth
 
 ```ts
-const updated = fields.map(tile =>
-  tile.x === 2 && tile.y === 3 ? { ...tile, watered: true } : tile
-);
-globalStore.set('fields', updated);
+// Water crop 3
+globalStore.set('farm.plots.3.watered', true);
+
+// Daily reset
+globalStore.set('farm.plots.1.watered', false);
+globalStore.set('farm.plots.2.watered', false);
+globalStore.set('farm.plots.3.watered', false);
 ```
 
-#### 🧡 Increasing Affection
+---
+
+### 🐓 Animal Feeding & Affection
 
 ```ts
-const npc = globalStore.get('npcs.alex');
-globalStore.set('npcs.alex', {
-  ...npc,
-  hearts: npc.hearts + 1,
-  giftedToday: true
+// Feed chicken
+globalStore.set('barn.animals.chicken01.fed', true);
+
+// Increase affection
+const affection = globalStore.get('barn.animals.chicken01.affection');
+globalStore.set('barn.animals.chicken01.affection', affection + 1);
+```
+
+---
+
+### 🌦️ Weather Triggers
+
+```ts
+// React to weather
+globalStore.onChange('calendar.weather', (type) => {
+  if (type === 'storm') disableOutdoorEvents();
 });
 ```
 
-#### 🐄 Feeding Animals
+---
+
+### 🛍️ Unlock Triggers
 
 ```ts
-const animals = globalStore.get('animals');
-const fed = animals.map(a => ({ ...a, fed: true }));
-globalStore.set('animals', fed);
+// Unlock carrot seeds when turnips harvested ≥ 10
+globalStore.onChange('inventory.crops.turnip', (val) => {
+  if (val >= 10) {
+    const unlocked = globalStore.get('meta.cropUnlocks');
+    if (!unlocked.includes('carrot')) {
+      globalStore.set('meta.cropUnlocks', [...unlocked, 'carrot']);
+    }
+  }
+});
 ```
 
-#### 🔁 Daily Reset Pattern
+---
+
+### 💝 NPC Affinity System
 
 ```ts
-// Reset daily flags (giftedToday, watered, etc.)
-const npcs = globalStore.get('npcs');
-for (const name in npcs) {
-  npcs[name].giftedToday = false;
-}
-globalStore.set('npcs', npcs);
+// Gift to Clara
+const score = globalStore.get('npcAffinity.clara');
+globalStore.set('npcAffinity.clara', score + 5);
+
+// Unlock relationship event
+globalStore.onChange('npcAffinity.clara', (val) => {
+  if (val >= 40) unlockCutscene('claraBench');
+});
+```
+
+---
+
+### 🔁 Daily Reset Pattern
+
+```ts
+// Reset daily flags
+globalStore.set('daily.petDog', false);
+globalStore.set('daily.visitedShop', false);
+globalStore.set('daily.cookedToday', false);
+
+// Reset watering
+Object.entries(globalStore.get('farm.plots')).forEach(([id]) => {
+  globalStore.set(`farm.plots.${id}.watered`, false);
+});
+
+// Reset animal fed status
+Object.entries(globalStore.get('barn.animals')).forEach(([id]) => {
+  globalStore.set(`barn.animals.${id}.fed`, false);
+});
+```
+
+---
+
+### 🧪 Delete Example
+
+```ts
+// Cow sold
+globalStore.delete('barn.animals.cow01');
 ```
 
 ---
 
 ### 💡 Design Tips
 
-* Avoid deeply nested per-tile trees — use arrays of objects for crops, animals, and furniture.
-* Use `onChange()` for things like crafting completion, festival triggers, or relationship changes.
-* Daily reset logic is a great candidate for scene boot hooks or day-end transitions.
-* Keep weather/event logic external, but store results globally.
+* Use `meta.*` for unlocked content, upgrades, and IDs
+* Reset `daily.*`, `farm.plots.*.watered`, and `barn.animals.*.fed` every in-game morning
+* Separate player stats (`player.energy`, `player.coins`) from meta and inventory
+* Animals should have unique IDs and tracked affection
+* Use `calendar.*` to drive seasonal or event-based systems
+
+> ✅ Pair with `save-kit` by calling `.dump()` for saves, `.reset()` for slot switching
+
+---
+
+### 🧠 Object Schema Examples
+
+#### 🌱 Farm Plot
+
+```ts
+farm.plots = {
+  '1': { crop: 'turnip', growthStage: 3, watered: true }
+};
+```
+
+#### 🐮 Animal Definition
+
+```ts
+barn.animals = {
+  cow01: { type: 'cow', name: 'MooMoo', fed: true, affection: 12 }
+};
+```
+
+#### 🌦️ Calendar
+
+```ts
+calendar = {
+  day: 6, season: 'spring', year: 1, weather: 'rain', festivalToday: null
+};
+```
 
 ---
 
 ### ✅ Plugin Alignment Table
 
-| Rule                        | Coverage                                                      |
-| --------------------------- | ------------------------------------------------------------- |
-| **Namespaced Keys**         | ✅ `player`, `fields`, `crafting`, `npcs`                      |
-| **Object Arrays**           | ✅ `fields[]`, `animals[]`, `furniture[]`                      |
-| **Booleans, timers, flags** | ✅ `giftedToday`, `fed`, `weather`, `remainingTime`            |
-| **Atomic update examples**  | ✅ Required to trigger `onChange()`                            |
-| **Realistic usage**         | ✅ Pulls from actual patterns seen in Stardew, Animal Crossing |
+| Rule                   | Coverage                                     |
+| ---------------------- | -------------------------------------------- |
+| Meta vs session state  | ✅ Split across `meta.*`, `calendar.*`, `daily.*` |
+| Atomic updates         | ✅ `.set()` used for everything               |
+| Object schemas         | ✅ Crops, animals, player, calendar shown     |
+| Save integration ready | ✅ Compatible with `dump()` and `reset()`     |
+| Event reactivity       | ✅ Crop unlocks, affinity gates, weather triggers |
 
 ---
 
 ### 🔗 See Also
 
-* `usage.mdc` for API details
-* `anti-patterns.mdc` for common misuse cases
-* `todo.mdc` to track future documentation like fishing, journal, or multiplayer state
+* `example-turn-based-rpg.mdc` for combat and quest flags
+* `example-roguelite.mdc` for meta vs run separation
+* `anti-patterns.mdc` for mutation warnings and best practices
+```

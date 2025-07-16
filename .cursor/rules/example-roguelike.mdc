@@ -1,124 +1,292 @@
 ---
 
 id: global-store-example-roguelite
-title: Global Store – Example: Rogue-lite
-version: 0.2.2
+title: Global Store – Example: Roguelite
+description: How to use global-store for roguelites with run resets, unlock trees, death logs, modifiers, and permanent upgrades.
+version: 0.2.4
 category: phaser-plugin
 status: active
---------------
 
-## ⚔️ Rogue-lite – Example Usage
+---
 
-This example demonstrates how to structure data in a game with repeatable runs, meta-progression, and unlockable systems. Inspired by games like *Vampire Survivors*, *Dead Cells*, and *Slay the Spire*.
+## 🌀 Roguelite – Example Usage
 
-It includes temporary run-state, permanent unlocks, achievement tracking, and lifecycle resets.
+This example shows how to separate **permanent meta progression** from **run-specific state**, using the global-store for:
+
+- Unlock tracking (characters, relics, areas)
+- Conditional bosses and modifiers
+- Meta currencies and upgrade trees
+- Legacy run history
+- Reactive triggers and event flags
+
+Inspired by *Hades*, *Slay the Spire*, and *Dead Cells*, it emphasizes **clean separation**, **atomic updates**, and **ID-driven systems**.
 
 ---
 
 ### 🧠 Recommended Key Structure
 
 ```ts
-// 🔁 Run-specific State (wiped at game over)
-run.character = 'rogue';
-run.hp = 42;
-run.gold = 83;
-run.floor = 3;
-run.mods = ['doubleDamage', 'regen'];
-run.status = 'alive';
-run.seed = 'a3f92k';
-
-// 🧠 Meta Progression (persists between runs)
-meta.unlocked.characters = ['rogue', 'mage'];
-meta.unlocked.mods = ['doubleDamage', 'regen', 'glassCannon'];
-meta.essence = 520;
-
-// 🪓 Weapon/Enemy Stats
-stats.kills = {
-  slime: 48,
-  bat: 19
+// 💾 Meta Progression
+meta = {
+  unlockedCharacters: ['warrior', 'archer'],
+  unlockedAreas: ['graveyard', 'crypt'],
+  unlockedRelics: ['soul-orb', 'revive-charm'],
+  permanentStats: {
+    hpBoost: 2,
+    startingGold: 150
+  },
+  shrineChoices: {
+    favor: 'speed',
+    curse: 'darkness'
+  },
+  metaCurrency: {
+    soulAsh: 14,
+    voidKeys: 2
+  },
+  upgradeTree: {
+    extraDash: true,
+    lifesteal: false,
+    altarAccess: true
+  },
+  bestDepth: 12,
+  legacyRuns: [
+    { character: 'archer', depth: 10, cause: 'slime', gold: 94, seed: 'abc-812' },
+    { character: 'warrior', depth: 12, cause: 'specter', gold: 112, seed: 'ggx-120' }
+  ],
+  deathsByEnemy: {
+    'slime': 4,
+    'shadow-witch': 2
+  }
 };
-stats.deaths = 7;
 
-// 🏆 Achievements
-flags.achievement.slayer = stats.kills.slime >= 50;
-flags.achievement.firstWin = true;
+// 🧍 Run State (reset every new run)
+run = {
+  seed: 'xyz-301',
+  character: 'archer',
+  depth: 4,
+  hp: 9,
+  gold: 76,
+  inventory: ['bow', 'smoke-bomb'],
+  relics: ['revive-charm'],
+  buffs: ['quickshot'],
+  debuffs: ['bleed'],
+  eventFlags: {
+    foundWishingWell: true,
+    helpedMushroomKing: false
+  },
+  bossModifiers: ['rage', 'shroud'],
+  activeBoss: 'bone-lord'
+};
+
+// 📦 Save Metadata
+saveMeta = {
+  slotId: 1,
+  createdAt: 1720568211,
+  lastPlayed: 1720680000
+};
 ```
 
 ---
 
-### 🛠 Code Examples
-
-#### ✅ Incrementing Kills
+### 💥 Combat + Inventory
 
 ```ts
-const stats = globalStore.get('stats.kills');
-stats.slime = (stats.slime || 0) + 1;
-globalStore.set('stats.kills', stats);
+// Take damage
+globalStore.set('run.hp', Math.max(0, globalStore.get('run.hp') - 4));
+
+// Add item to inventory
+const inv = globalStore.get('run.inventory');
+globalStore.set('run.inventory', [...inv, 'smoke-bomb']);
 ```
 
-#### 🧩 Unlocking a New Character
+---
+
+### 🔁 Run Reset with Seeding
 
 ```ts
-const chars = globalStore.get('meta.unlocked.characters');
-if (!chars.includes('knight')) {
-  globalStore.set('meta.unlocked.characters', [...chars, 'knight']);
-}
-```
+globalStore.delete('run');
 
-#### 🔁 Starting a New Run
-
-```ts
 globalStore.set('run', {
-  character: 'rogue',
-  hp: 100,
-  gold: 0,
-  floor: 1,
-  mods: [],
-  status: 'alive',
-  seed: String(Date.now())
+  seed: createRandomSeed(),
+  character: 'warrior',
+  depth: 1,
+  hp: 12,
+  gold: globalStore.get('meta.permanentStats.startingGold'),
+  inventory: ['sword'],
+  relics: [],
+  buffs: [],
+  debuffs: [],
+  eventFlags: {},
+  bossModifiers: [],
+  activeBoss: null
 });
 ```
 
-#### ⚰️ Ending a Run (death)
+---
+
+### 🔓 Unlocks & Meta Currency
 
 ```ts
-globalStore.set('run.status', 'dead');
-globalStore.set('stats.deaths', globalStore.get('stats.deaths') + 1);
+// Unlock relic
+const relics = globalStore.get('meta.unlockedRelics');
+globalStore.set('meta.unlockedRelics', [...relics, 'mirror-shard']);
+
+// Spend soul ash
+const ash = globalStore.get('meta.metaCurrency.soulAsh');
+globalStore.set('meta.metaCurrency.soulAsh', ash - 5);
 ```
 
-#### 🧼 Resetting Only Run State
+---
+
+### 🧬 Upgrade Tree
 
 ```ts
-globalStore.set('run', {}); // Clears ephemeral state, keeps meta intact
+// Buy altar access upgrade
+globalStore.set('meta.upgradeTree.altarAccess', true);
+
+// Check for optional branches
+if (!globalStore.get('meta.upgradeTree.lifesteal')) {
+  enableUpgradePreview('lifesteal');
+}
+```
+
+---
+
+### 🔥 Conditional Boss Unlocks & Modifiers
+
+```ts
+// Boss modifier: enable 'rage' if player has extraDash and favor is 'speed'
+const upgrades = globalStore.get('meta.upgradeTree');
+const favor = globalStore.get('meta.shrineChoices.favor');
+
+if (upgrades.extraDash && favor === 'speed') {
+  globalStore.set('run.bossModifiers', ['rage']);
+}
+```
+
+```ts
+// Activate final boss after specific areas
+const areas = globalStore.get('meta.unlockedAreas');
+if (areas.includes('graveyard') && areas.includes('crypt')) {
+  globalStore.set('run.activeBoss', 'bone-lord');
+}
+```
+
+---
+
+### 📜 Track Legacy Run
+
+```ts
+const past = globalStore.get('meta.legacyRuns');
+const last = {
+  character: globalStore.get('run.character'),
+  depth: globalStore.get('run.depth'),
+  gold: globalStore.get('run.gold'),
+  cause: 'specter',
+  seed: globalStore.get('run.seed')
+};
+
+globalStore.set('meta.legacyRuns', [...past.slice(-19), last]); // Keep last 20 runs
+```
+
+---
+
+### 💀 Death Tracking
+
+```ts
+const deaths = globalStore.get('meta.deathsByEnemy.shadow-witch') || 0;
+globalStore.set('meta.deathsByEnemy.shadow-witch', deaths + 1);
+```
+
+---
+
+### 🔔 Reactive Depth Tracker
+
+```ts
+globalStore.onChange('run.depth', (val) => {
+  if (val > globalStore.get('meta.bestDepth')) {
+    globalStore.set('meta.bestDepth', val);
+  }
+});
 ```
 
 ---
 
 ### 💡 Design Tips
 
-* Keep `run` and `meta` namespaces separate to avoid accidental overwrites
-* Store arrays for unlocked content (`characters`, `mods`, `achievements`)
-* Use `onChange()` to react to death, floor increase, or mod selection
-* Use a `seed` string for reproducible or daily modes
-* Never mutate nested stats in-place — replace whole object or value
+* Use `meta.*` for everything persistent — currency, relics, characters, stats
+* Use `run.*` for each loop (reset every time)
+* Keep `bossModifiers` and `activeBoss` in `run.*` to support dynamic changes
+* Track previous runs using a capped array in `meta.legacyRuns`
+* Avoid storing “unlocked” booleans — use ID arrays or object keys
+
+> ✅ Use `.dump()` for saving meta; reset `run.*` at the start of every session
+
+---
+
+### 🧠 Object Schema Examples
+
+#### 🔒 Meta Unlocks
+
+```ts
+meta = {
+  unlockedCharacters: ['archer'],
+  unlockedRelics: ['dash-stone'],
+  unlockedAreas: ['graveyard', 'crypt']
+};
+```
+
+#### 🧍 Run Data
+
+```ts
+run = {
+  seed: 'abc-921',
+  character: 'archer',
+  depth: 3,
+  hp: 7,
+  gold: 42,
+  inventory: ['bow'],
+  bossModifiers: ['rage'],
+  activeBoss: 'shadow-witch'
+};
+```
+
+#### 🧬 Upgrade Tree
+
+```ts
+upgradeTree = {
+  altarAccess: true,
+  extraDash: true,
+  lifesteal: false
+};
+```
+
+#### 📜 Legacy Run
+
+```ts
+legacyRuns = [
+  { character: 'monk', depth: 12, cause: 'gorgon', gold: 101, seed: 'mmx-222' }
+];
+```
 
 ---
 
 ### ✅ Plugin Alignment Table
 
-| Rule                           | Coverage                                 |
-| ------------------------------ | ---------------------------------------- |
-| **Ephemeral vs. Persistent**   | ✅ `run` vs. `meta` separation            |
-| **Simple keys**                | ✅ Shallow: `run.hp`, `stats.kills.slime` |
-| **Atomic update examples**     | ✅ Required for kills, unlocks, resets    |
-| **Lifecycle usage**            | ✅ Full `reset()` pattern shown           |
-| **Reactive hooks (suggested)** | 🔁 Mentioned in death/floor events       |
+| Rule                   | Coverage                                     |
+| ---------------------- | -------------------------------------------- |
+| Meta vs session state  | ✅ `meta.*` vs `run.*` clearly separated      |
+| Atomic updates         | ✅ All state modified via `.set()`            |
+| Object schemas         | ✅ Multiple: run, upgradeTree, logs, relics   |
+| Save integration ready | ✅ Fully compatible with `dump()` / `reset()` |
+| Event reactivity       | ✅ Boss gates, depth unlocks, shrine effects  |
 
 ---
 
 ### 🔗 See Also
 
-* `usage.mdc` for API details
-* `anti-patterns.mdc` for mutation warnings
-* `example-turn-based-rpg.mdc` for structured party state
-* `example-farming-sim.mdc` for persistent grid + event logic
+* `example-turn-based-rpg.mdc` for party systems
+* `example-deckbuilder.mdc` for card pools and hand tracking
+* `anti-patterns.mdc` for state misuse and mutation warnings
+```
+

@@ -2,167 +2,187 @@
 
 id: global-store-example-deckbuilder
 title: Global Store – Example: Deckbuilder
-version: 0.2.3
+description: How to use global-store for card-based games with quantity-based collections, match decks, and unlock tracking.
+version: 0.2.4
 category: phaser-plugin
 status: active
---------------
+
+---
 
 ## 🃏 Deckbuilder – Example Usage
 
-This example models a **trading card battler** (inspired by Pokémon TCG and MTG), covering both:
+This example demonstrates how to track a **large, quantity-based card collection** and manage per-match deck state in a deckbuilding game.
 
-* Persistent meta layer (collection, decks, stats)
-* Temporary battle state (hand, piles, turn info)
-
-It showcases how to separate short-lived combat data from permanent player progress — including how to support **large card pools**, **deck unlocks**, and **player-owned upgrades**.
+It distinguishes between **persistent meta-state** (`meta.collection`, `meta.permanentUpgrades`) and **ephemeral match state** (`match.deck`, `match.hand`, etc.), and shows how to track card ownership, match performance, and unlock conditions.
 
 ---
 
 ### 🧠 Recommended Key Structure
 
 ```ts
-// 📦 Meta Progression (persistent)
-meta.cardLibrary = {
-  strike: { unlocked: true, upgraded: false },
-  block: { unlocked: true, upgraded: false },
-  fireball: { unlocked: true, upgraded: true },
-  poisonFang: { unlocked: false, upgraded: false },
+// 📚 Meta Collection (owned card IDs + quantity)
+meta = {
+  collection: {
+    'strike': 12,
+    'defend': 8,
+    'fireball': 3,
+    'focus': 2,
+    'poison-dart': 1
+  },
+  unlockedRelics: ['draw-boost', 'potion-bag'],
+  permanentUpgrades: {
+    drawBonus: 1,
+    startingHP: 80
+  },
+  winStreak: 3,
+  dailyModes: ['mirror-draft', 'extreme-debuff']
 };
 
-meta.decks = {
-  starter: ['strike', 'strike', 'block'],
-  fire: ['fireball', 'fireball', 'block'],
-};
-meta.decksAvailable = ['starter', 'fire'];
-meta.activeDeck = 'starter';
-
-meta.stats = {
-  matchesWon: 12,
-  matchesLost: 3,
-};
-
-meta.currency = {
-  gold: 120,
-  boosterPacks: 1,
+// 🎴 Match State (cleared after every run)
+match = {
+  deck: ['strike', 'strike', 'strike', 'defend', 'fireball', 'fireball'],
+  hand: ['defend', 'fireball'],
+  discard: [],
+  drawPile: ['strike', 'fireball'],
+  hp: 52,
+  turn: 4,
+  relics: ['potion-bag'],
+  modifiers: ['no-healing', 'double-enemies'],
+  seed: 'daily-712x',
+  draftPool: ['focus', 'poison-dart', 'strike']
 };
 
-// 🎯 Battle (temporary)
-battle.drawPile = ['strike', 'block', 'fireball'];
-battle.hand = [
-  { id: 'strike', cost: 1, damage: 6 },
-  { id: 'block', cost: 1, block: 5 },
-];
-battle.discardPile = [];
-battle.exhausted = [];
-
-battle.hp = {
-  player: 20,
-  enemy: 15
+// 📦 Save Metadata
+saveMeta = {
+  slotId: 2,
+  createdAt: 1720584421
 };
-
-battle.turn = 3;
-battle.phase = 'player'; // or 'enemy', 'win', 'loss'
-battle.result = null; // becomes 'win' or 'loss'
-
-// 🎌 UI and Tutorial
-flags.ui.seenBattleTutorial = true;
 ```
 
 ---
 
-### 🃠 Card Schema (Example Object)
+### 📈 Adding Cards to Collection
 
 ```ts
-{
-  id: 'fireball',
-  cost: 2,
-  damage: 10,
-  traits: ['magic', 'fire'],
-  upgraded: false
-}
+// Gain a card from a win
+const qty = globalStore.get('meta.collection.poison-dart') || 0;
+globalStore.set('meta.collection.poison-dart', qty + 1);
 ```
 
-> Cards in `hand` are full objects. Cards in `drawPile`, `deck`, and `library` should be **IDs** only. Actual card data comes from your external definitions.
-
----
-
-### 🛠 Code Examples
-
-#### 📥 Drawing a Card
-
 ```ts
-const drawPile = globalStore.get('battle.drawPile');
-const hand = globalStore.get('battle.hand');
-
-const nextCard = drawPile.shift();
-hand.push(nextCard);
-
-globalStore.set('battle.drawPile', drawPile);
-globalStore.set('battle.hand', hand);
-```
-
-#### 🗑 Playing a Card (and discarding it)
-
-```ts
-const hand = globalStore.get('battle.hand');
-const discardPile = globalStore.get('battle.discardPile');
-
-const played = hand.splice(1, 1)[0]; // Remove 2nd card
-if (played) discardPile.push(played);
-
-globalStore.set('battle.hand', hand);
-globalStore.set('battle.discardPile', discardPile);
-```
-
-#### 🧹 Resetting Battle After Match Ends
-
-```ts
-if (globalStore.get('battle.result')) {
-  globalStore.delete('battle.drawPile');
-  globalStore.delete('battle.hand');
-  globalStore.delete('battle.discardPile');
-  globalStore.delete('battle.hp');
-  globalStore.delete('battle.phase');
-  globalStore.delete('battle.result');
-  globalStore.delete('battle.turn');
-}
-```
-
-#### 🏆 Updating Win Count
-
-```ts
-const wins = globalStore.get('meta.stats.matchesWon') || 0;
-globalStore.set('meta.stats.matchesWon', wins + 1);
+// Add duplicate of existing card
+const strikeQty = globalStore.get('meta.collection.strike');
+globalStore.set('meta.collection.strike', strikeQty + 3);
 ```
 
 ---
 
-### 💡 Design Tips
+### 🎴 Deck and Hand Example
 
-* Keep battle state **ephemeral and atomic** — always replace full arrays
-* Use **card IDs** in global store — store actual card data in a static lookup
-* Use `meta.cardLibrary` for unlocked/upgrade status
-* Use `meta.decksAvailable` to control progression gating
-* Use `flags.*` for UI and tutorial logic
+```ts
+// Discard the first card in hand
+const hand = globalStore.get('match.hand');
+const discard = globalStore.get('match.discard');
+globalStore.set('match.hand', hand.slice(1));
+globalStore.set('match.discard', [...discard, hand[0]]);
+```
 
-> 🧠 For large libraries (1000+ cards), avoid deep nesting — store only `cardId`s in state and load full card data from your definitions module.
+```ts
+// Draw next card from drawPile
+const pile = globalStore.get('match.drawPile');
+const newHand = [...globalStore.get('match.hand'), pile[0]];
+globalStore.set('match.hand', newHand);
+globalStore.set('match.drawPile', pile.slice(1));
+```
+
+---
+
+### 🔁 Match Reset Pattern
+
+```ts
+// End match and clear state
+globalStore.delete('match');
+
+// Update win streak
+const streak = globalStore.get('meta.winStreak');
+globalStore.set('meta.winStreak', streak + 1);
+```
+
+---
+
+### 🔓 Unlock New Card from Match Logic
+
+```ts
+// Unlock "focus" if turn ≥ 10
+globalStore.onChange('match.turn', (turn) => {
+  if (turn >= 10) {
+    const current = globalStore.get('meta.collection.focus') || 0;
+    if (current === 0) {
+      globalStore.set('meta.collection.focus', 1);
+    }
+  }
+});
+```
+
+---
+
+### 🧠 Design Tip – Large Card Collections
+
+For large, expandable card systems:
+
+* Store cards by **ID + quantity** in `meta.collection`
+* Decks should be **arrays of IDs**, including duplicates
+* Match logic operates on references only — all metadata comes from a static catalog
+* Avoid object mutation — always replace arrays when updating hand, deck, discard
+* Draft logic should **not mutate** the collection — only permanent acquisition does
+
+> ✅ Use `.dump()` before save and `.delete('match')` to reset per session
+
+---
+
+### 🧠 Object Schema Examples
+
+#### 📚 Card Collection
+
+```ts
+meta.collection = {
+  'strike': 12,
+  'defend': 8,
+  'fireball': 3,
+  'focus': 2
+};
+```
+
+#### 🎴 Match Deck & Hand
+
+```ts
+match = {
+  deck: ['strike', 'strike', 'defend', 'fireball', 'focus'],
+  hand: ['fireball', 'focus'],
+  discard: ['defend'],
+  drawPile: ['strike'],
+  hp: 52,
+  turn: 4,
+  relics: ['potion-bag']
+};
+```
 
 ---
 
 ### ✅ Plugin Alignment Table
 
-| Rule                        | Coverage                             |
-| --------------------------- | ------------------------------------ |
-| **Ephemeral session state** | ✅ `battle.*` keys are temporary      |
-| **Atomic replacements**     | ✅ Examples for draw/play/discard     |
-| **Meta vs combat**          | ✅ Clearly namespaced                 |
-| **Card object shape**       | ✅ Card schema and library shown      |
-| **Unlock & deck control**   | ✅ Multiple decks, availability flags |
+| Rule                   | Coverage                                      |
+| ---------------------- | --------------------------------------------- |
+| Meta vs session state  | ✅ `meta.*` vs `match.*` separation            |
+| Atomic updates         | ✅ No in-place mutation                        |
+| Object schemas         | ✅ Collection, deck, hand, discard, relics     |
+| Save integration ready | ✅ Uses `.dump()` and `.delete('match')`       |
+| Event reactivity       | ✅ Unlock logic and win streak tracking        |
 
 ---
 
 ### 🔗 See Also
 
-* `example-turn-based-rpg.mdc` for player stats and gear
-* `example-roguelite.mdc` for resets and meta upgrades
-* `anti-patterns.mdc` for mutation and cleanup issues
+* `example-roguelite.mdc` for long-term unlocks and depth tracking
+* `anti-patterns.mdc` for common structure and mutation issues
+```

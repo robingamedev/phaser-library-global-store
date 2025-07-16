@@ -1,132 +1,190 @@
 ---
-description: 
-globs: 
-alwaysApply: false
----
----
-id: global-store-anti-patterns
-title: Global Store – Anti-Patterns & Misuses
-version: 0.1.0
+
+id: global-store-antipatterns
+title: Global Store – Anti-Patterns
+description: Common mistakes when using global-store and how to fix them.
+version: 0.2.4
 category: phaser-plugin
 status: active
----
-
-## 🚫 Global Store Anti-Patterns
-
-This plugin is flexible — but misuse can create long-term problems.
-
-Use this guide to avoid common traps when using `global-store` in your Phaser game.
 
 ---
 
-### ❌ 1. Storing Scene-Local State
+## 🚫 Global Store – Common Anti-Patterns
 
-```ts
-globalStore.set('camera.shakeX', 0.4);
-```
+This file documents common **misuses of global-store** that lead to bugs, state corruption, or unreadable structure.
 
-**Why it's bad:**
-- This value is only needed during one scene.
-- It pollutes global state with temporary data.
-- Leads to confusion when scenes re-read it out of context.
-
-**Use Instead:**
-```ts
-this.cameras.main.shake(...) // Keep state in-scene
-```
+Each anti-pattern includes a **before** (bad) and **after** (recommended) example using real-world use cases from farming sims, deckbuilders, RPGs, and roguelites.
 
 ---
 
-### ❌ 2. Flat Key Explosion
+### 🧱 1. In-Place Mutation of Nested Objects
+
+Avoid modifying nested structures after `.get()`. It **breaks reactivity** and creates stale data.
+
+#### 🚫 Bad
 
 ```ts
-globalStore.set('playerHp', 100);
-globalStore.set('playerXp', 1200);
-globalStore.set('playerCoins', 300);
+const player = store.get('player');
+player.hp -= 5; // ← No .set() call — store never updates
 ```
 
-**Why it's bad:**
-- No structure. Becomes unmaintainable at scale.
-- Hard to debug, hard to serialize.
+#### ✅ Good
 
-**Use Instead:**
 ```ts
-globalStore.set('player.hp', 100);
-globalStore.set('player.xp', 1200);
-globalStore.set('player.coins', 300);
+const hp = store.get('player.hp');
+store.set('player.hp', hp - 5);
 ```
 
 ---
 
-### ❌ 3. Never Cleaning Up `onChange()` Listeners
+### 🪣 2. Overwriting Parent Objects Without Merging
+
+Don't overwrite a nested object (e.g. `inventory`) unless you intend to **replace the entire thing**. This can wipe unrelated keys.
+
+#### 🚫 Bad
 
 ```ts
-// In SceneA
-globalStore.onChange('player.hp', this.updateUI);
+store.set('inventory', { wood: 10 }); // ← Deletes all other inventory keys
 ```
 
-**Why it's bad:**
-- If you don’t call `offChange()`, this listener stays alive forever.
-- Re-entering SceneA? Now the callback fires twice.
-- Memory leaks and ghost behaviors.
+#### ✅ Good
 
-**Use Instead:**
 ```ts
-this.hpListener = (val) => this.updateUI(val);
-globalStore.onChange('player.hp', this.hpListener);
-
-this.events.once('shutdown', () => {
-  globalStore.offChange('player.hp', this.hpListener);
-});
+const inv = store.get('inventory');
+store.set('inventory', { ...inv, wood: 10 });
 ```
 
----
-
-### ❌ 4. Using globalStore as a dumping ground
+Or better:
 
 ```ts
-globalStore.set('tempName', userInput);
-globalStore.set('scoreBuffer', []);
-globalStore.set('debugFPS', true);
-```
-
-**Why it's bad:**
-- You’re using it for *everything*, not just shared game state.
-- Becomes a junk drawer that’s hard to clean.
-
-**Use Instead:**
-- Store persistent, cross-scene state only
-- Keep debug and short-term variables elsewhere
-
----
-
-### ❌ 5. Storing Non-Serializable Data
-
-```ts
-globalStore.set('player.attackFn', () => { ... });
-```
-
-**Why it's bad:**
-- Breaks serialization (`dump()` won’t work)
-- Can’t save or transfer between sessions
-- Causes weird behavior on reload or `reset()`
-
-**Use Instead:**
-- Store only **primitives, arrays, and plain objects**
-- Use string keys for skills/abilities, not actual logic
-
-```ts
-globalStore.set('player.skills', ['attack', 'block']);
+store.set('inventory.wood', 10);
 ```
 
 ---
 
-## ✅ Final Advice
+### 🔥 3. Flat Sprawl Keys Instead of Namespacing
 
-- Keep it **structured** and **predictable**
-- Use the store for **game state**, not everything else
-- Avoid ghost listeners by always calling `offChange()`
-- Think: “Would I need this value across scenes, or after a save/load?”
+Avoid unstructured keys like `playerHP` or `goldCount`. Use **dot-paths** to group related data.
+
+#### 🚫 Bad
+
+```ts
+store.set('playerHP', 40);
+store.set('itemList', ['apple', 'potion']);
+```
+
+#### ✅ Good
+
+```ts
+store.set('player.hp', 40);
+store.set('inventory.items', ['apple', 'potion']);
+```
 
 ---
+
+### 🧩 4. Boolean Unlock Flags Instead of ID Arrays
+
+Avoid `hasRelicX` or `hasCardY` flags. They don’t scale. Use **ID-based arrays** to track unlocks.
+
+#### 🚫 Bad
+
+```ts
+store.set('meta.hasSwordRelic', true);
+store.set('meta.hasFocusCard', true);
+```
+
+#### ✅ Good
+
+```ts
+store.set('meta.unlockedRelics', ['sword-relic']);
+store.set('meta.collection.focus', 1);
+```
+
+---
+
+### 🌀 5. Storing Scene-Local State in Global Store
+
+Global store is not for **camera position**, **NPC animation frames**, or **tween references**.
+
+#### 🚫 Bad
+
+```ts
+store.set('scene.camera.x', camera.scrollX);
+store.set('dialogAnimation.activeTween', tween);
+```
+
+#### ✅ Good
+
+Only store **serializable game state**:
+```ts
+store.set('scene.village.cutsceneSeen', true);
+```
+
+> Use **scene-level variables or class fields** for ephemeral, non-persistent state.
+
+---
+
+### 💾 6. Storing Entire Card or Item Objects
+
+Avoid storing full object blobs in the store. Keep data elsewhere and store only **references by ID**.
+
+#### 🚫 Bad
+
+```ts
+store.set('match.deck', [
+  { id: 'strike', cost: 1, damage: 6 },
+  { id: 'defend', cost: 1, block: 5 }
+]);
+```
+
+#### ✅ Good
+
+```ts
+store.set('match.deck', ['strike', 'defend']);
+```
+
+> Look up card metadata in your static card catalog.
+
+---
+
+### 🔁 7. Forgetting to Reset Temporary State
+
+If your game has temporary phases (battles, matches, farming days), don’t forget to **clear or reset** that state.
+
+#### 🚫 Bad
+
+```ts
+// Starting a new run
+store.set('run.depth', 1); // ← Doesn’t clear old values
+```
+
+#### ✅ Good
+
+```ts
+store.delete('run');
+store.set('run', { depth: 1, inventory: [], relics: [] });
+```
+
+---
+
+### 📚 Summary of Best Practices
+
+| Rule                         | ✅ Do This                     |
+|------------------------------|-------------------------------|
+| Organize with dot-paths      | `player.hp`, `scene.village.*` |
+| Use atomic updates           | Always use `.set()` with a new value |
+| Avoid in-place mutation      | Never change `.get()` results directly |
+| Track unlocks by ID          | Use arrays/maps, not flags     |
+| Reset transient state        | `delete('battle')`, `delete('match')` |
+| Store references, not blobs  | Use IDs, not full objects      |
+
+---
+
+### 🔗 See Also
+
+* `example-turn-based-rpg.mdc` for combat session patterns
+* `example-deckbuilder.mdc` for quantity-based card systems
+* `usage.mdc` for `.set`, `.get`, `.onChange` API details
+* `overview.mdc` for plugin design goals
+```
 

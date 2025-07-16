@@ -1,154 +1,211 @@
 ---
+
 id: global-store-example-turn-based-rpg
 title: Global Store – Example: Turn-Based RPG
-version: 0.2.2
+description: How to use global-store for party-based RPGs with persistent meta and combat state.
+version: 0.2.4
 category: phaser-plugin
 status: active
----
+--------------
 
 ## ⚔️ Turn-Based RPG – Example Usage
 
-This example demonstrates how to structure persistent state for a classic turn-based RPG, inspired by NES-era games like *Dragon Quest*.
+This example covers how to manage **persistent meta-state** (stats, progress, quests) and **ephemeral combat state** in a traditional JRPG-style game (e.g., Dragon Quest, Final Fantasy).
+
+It emphasizes proper scoping between long-term progression and battle-only state.
 
 ---
 
 ### 🧠 Recommended Key Structure
 
 ```ts
-player.name = 'Erdrick'
-player.level = 16
-player.xp = 3450
-player.class = 'Hero'
-player.checkpoint = 'Tantagel Castle'
-
-player.equipment = {
-  weapon: 'Copper Sword',
-  armor: 'Chainmail',
-  shield: 'Leather Shield'
-}
-
-party.members = [
-  {
-    id: 'hero',
-    name: 'Erdrick',
-    level: 16,
-    hp: 52,
-    mp: 20,
-    status: 'healthy',
-    skills: ['Heal', 'Fireball']
-  },
-  {
-    id: 'prince',
-    name: 'Kain',
-    level: 14,
-    hp: 45,
-    mp: 32,
-    status: 'poisoned',
-    skills: ['Heal', 'Defend']
+// 📦 Meta progression (permanent)
+meta = {
+  gold: 1200,
+  items: ['potion', 'ether'],
+  completedQuests: ['banditHideout'],
+  world: {
+    exploredTiles: ['town1', 'forest4', 'caveEntrance']
   }
-]
+};
 
-inventory.gold = 912
-inventory.items = [
-  { id: 'herb', qty: 3 },
-  { id: 'torch', qty: 1 }
-]
+// 🧙 Party definition (by ID)
+party = ['hero', 'mage'];
 
-quests.active = ['goblinCaves']
-quests.completed = ['intro/tutorial']
+partyMembers = {
+  hero: {
+    name: 'Aeron',
+    hp: 35,
+    hpMax: 40,
+    atk: 12,
+    def: 6,
+    level: 7,
+    xp: 480,
+    equipped: {
+      weapon: 'bronze-sword',
+      armor: 'leather-mail',
+      accessory: 'luck-charm'
+    }
+  },
+  mage: {
+    name: 'Mira',
+    hp: 20,
+    hpMax: 25,
+    atk: 5,
+    def: 2,
+    level: 6,
+    xp: 420,
+    equipped: {
+      weapon: 'oak-staff',
+      armor: 'robe',
+      accessory: null
+    }
+  }
+};
 
-world.towns.visited = ['Tantagel', 'Garinham']
-world.chestsOpened = ['cave.1']
-world.npcs.interacted = ['oldManBridge']
+// ⚔️ Active battle state (ephemeral)
+battle = {
+  enemy: 'goblin',
+  enemyHp: 18,
+  turn: 3,
+  lastAction: 'mage-cast-fireball'
+};
 
-flags.shop.unlocked = true
-bosses.defeated = ['greenDragon']
+// 📦 Save metadata (optional)
+saveMeta = {
+  location: 'Cave of Echoes',
+  chapter: '2 – Into Darkness',
+  playtime: 4821 // seconds
+};
 ```
 
 ---
 
-### 🪪 Common Use Cases
-
-- Track long-term player stats and progression
-- Save party composition, HP, MP, and equipment between scenes
-- Manage quests and world triggers (doors, chests, shops)
-- Unlock interactions and upgrades using boolean flags
-- Persist checkpoint save locations
-
----
-
-### 🛠 Code Examples
-
-#### 🌟 Gaining XP and Leveling Up
+### 💥 Combat Interaction Example
 
 ```ts
-const currentXP = globalStore.get('player.xp') ?? 0;
-const newXP = currentXP + 150;
-globalStore.set('player.xp', newXP);
-
-if (newXP >= 4000) {
-  globalStore.set('player.level', 17);
-}
+const targetHp = globalStore.get('battle.enemyHp');
+globalStore.set('battle.enemyHp', targetHp - 5);
 ```
 
-#### 🏛 Unlocking a Shop
-
 ```ts
-globalStore.set('flags.shop.unlocked', true);
-
-if (!globalStore.get('flags.shop.unlocked')) {
-  this.scene.start('LockedShopMessage');
-}
-```
-
-#### 🗺 Visiting a New Town
-
-```ts
-const visited = globalStore.get('world.towns.visited') ?? [];
-if (!visited.includes('bramblewood')) {
-  globalStore.set('world.towns.visited', [...visited, 'bramblewood']);
-}
-```
-
-#### 📜 Completing a Quest
-
-```ts
-const completed = globalStore.get('quests.completed') ?? [];
-globalStore.set('quests.completed', [...completed, 'witchTrial']);
-
-const allDone = completed.includes('goblinCaves') && completed.includes('witchTrial');
-if (allDone) {
-  globalStore.set('flags.bossGateUnlocked', true);
-}
+// Reset after battle ends
+globalStore.delete('battle');
 ```
 
 ---
 
-### 💡 Pro Tips
+### 💊 Inventory Example
 
-- Always use **atomic replacements** when updating nested objects or arrays
-- Replace the entire `party.members[]` array when a character changes
-- Use `npc.*` or `world.*` for interaction flags and exploration state
-- Avoid tracking temporary status like `battleTurn` or `isDefending` in the global store
+```ts
+const items = globalStore.get('meta.items');
+globalStore.set('meta.items', [...items, 'revive']);
+```
 
 ---
 
-### ✅ Alignment with Plugin Rules
+### 🔁 Tracking Quest Completion
 
-| Rule | Alignment |
-|------|-----------|
-| **Scoped** | ✅ Uses grouped namespaces for `player`, `party`, `quests`, `world`, etc. |
-| **Minimalist** | ✅ Only persistent state, no animations or per-frame battle logic |
-| **Flexible** | ✅ Tracks exploration, questing, upgrades, and meta-progress |
-| **TypeScript-friendly** | ✅ Structure works well with plain object types |
-| **No runtime bloat** | ✅ All updates are explicit; no proxies or deep listeners |
-| **No deep mutation risk** | ✅ All changes use object/array replacement |
+```ts
+const quests = globalStore.get('meta.completedQuests');
+globalStore.set('meta.completedQuests', [...quests, 'hauntedLibrary']);
+```
+
+---
+
+### 🔔 Reactive Triggers
+
+```ts
+// Unlock shop after gold reaches 1000
+globalStore.onChange('meta.gold', (newVal) => {
+  if (newVal >= 1000) openShop();
+});
+
+// Trigger cutscene when town is visited
+globalStore.onChange('meta.world.exploredTiles', (tiles) => {
+  if (tiles.includes('town2')) launchCutscene('arrival-town2');
+});
+
+// React to active quest updates
+globalStore.onChange('meta.completedQuests', (quests) => {
+  if (quests.includes('hauntedLibrary')) enableRewardDialogue();
+});
+```
+
+---
+
+### 💡 Design Tips
+
+* Use `meta.*` for long-term state and save/load
+* Use `battle.*` for temporary combat context only
+* Always use **array/object replacements** for updates
+* Track party members by ID for easier swapping and healing
+* Don’t store scene-specific variables (like positions or camera) unless they’re relevant to persistence
+
+> ✅ Use `dump()` before saving, and `reset()` to restore game state from a file
+
+---
+
+### 🧠 Object Schema Examples
+
+#### 🧙 Party Members
+
+```ts
+party = ['hero', 'mage'];
+
+partyMembers = {
+  hero: {
+    name: 'Aeron', hp: 35, hpMax: 40, atk: 12, def: 6,
+    level: 7, xp: 480,
+    equipped: { weapon: 'bronze-sword', armor: 'leather-mail', accessory: 'luck-charm' }
+  },
+  mage: {
+    name: 'Mira', hp: 20, hpMax: 25, atk: 5, def: 2,
+    level: 6, xp: 420,
+    equipped: { weapon: 'oak-staff', armor: 'robe', accessory: null }
+  }
+};
+```
+
+#### 📦 Meta Progress
+
+```ts
+meta = {
+  gold: 1200,
+  completedQuests: ['introVillage'],
+  items: ['potion', 'bomb'],
+  world: {
+    exploredTiles: ['town1', 'forest4', 'caveEntrance']
+  }
+};
+```
+
+#### ⚔️ Battle State
+
+```ts
+battle = {
+  enemy: 'orc-brute',
+  enemyHp: 32,
+  turn: 4
+};
+```
+
+---
+
+### ✅ Plugin Alignment Table
+
+| Rule                   | Coverage                                     |
+| ---------------------- | -------------------------------------------- |
+| Meta vs session state  | ✅ `meta.*` vs `battle.*` separation          |
+| Atomic updates         | ✅ Uses array spreads and replacements        |
+| Object schemas         | ✅ Rich examples for party, equipment, quests |
+| Save integration ready | ✅ `dump()` and `reset()` implied             |
+| Event reactivity       | ✅ `onChange()` for cutscenes and quest flags |
 
 ---
 
 ### 🔗 See Also
 
-- `usage.mdc` for full API reference
-- `examples.mdc` for other game genres
-- `anti-patterns.mdc` for warnings and common misuses
-
+* `example-visual-novel.mdc` for branching flags and affinity
+* `example-deckbuilder.mdc` for card tracking and transient matches
+* `anti-patterns.mdc` for bad practices around in-place mutation
